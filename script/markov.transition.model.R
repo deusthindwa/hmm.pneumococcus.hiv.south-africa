@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #Written by Deus Thindwa
 #Does household HIV-exposure increase infant risk of pneumoccocal carriage acquisition?
 #An analysis using markov transition model
@@ -29,3 +30,13 @@ phirst$hivstatus <- if_else(phirst$age<1, rep(sample(c("unexposed","exposed"), s
 
 
 
+=======
+#written by Deus Thindwa
+#14/05/2019
+
+DDHP.packages <-c("foreign","tidyverse","janitor","readstata13","rstan","rethinking")
+lapply(DDHP.packages, library, character.only=TRUE)
+
+#load male questionnaire csv
+phirst.cohort <-as_tibble(read.dta13(""))
+>>>>>>> 1b24a5c2f31a6acc6c545802cbb03a3f2c34869e

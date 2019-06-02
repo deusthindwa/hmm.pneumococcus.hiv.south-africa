@@ -1,5 +1,5 @@
 #Written by Deus Thindwa
-#Does household HIV-exposure increase infant risk of pneumoccocal carriage acquisition?
+#Does household HIV-exposure increase infant risk of pneumococcal carriage acquisition?
 #An analysis using markov transition model
 #PhD chapter 2
 #14/05/2019

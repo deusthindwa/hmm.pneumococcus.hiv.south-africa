@@ -5,7 +5,7 @@
 #14/05/2019
 
 #load required packages into memory
-phirst.packages <-c("tidyverse","plyr")
+phirst.packages <-c("tidyverse","plyr", "msm")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #simulate a phirst dataset
@@ -22,7 +22,43 @@ phirst$serotype <- if_else(phirst$carrige=="positive", sample(c("1","3","5","6A"
 phirst$hivstatus <- if_else(phirst$age<1, rep(sample(c("unexposed","exposed"), size=sample.size, replace=TRUE), each=5, length.out=520),
                            if_else(phirst$age>=1, rep(sample(c("negative","positive"), size=sample.size, replace=TRUE), each=5, length.out=520),NULL)) #hiv status
 
-#descriptive analysis
+#analysis using "msm" R package
+#load coronary allograft vasculopathy dataset
+cav <- msm::cav
+
+#exclude pdiag missing obs
+cav <- cav[!is.na(cav$pdiag),]
+
+#summarise number of transitions between states
+statetable.msm(cav$state, cav$PTNUM)
+
+#construct a transition matrix with initial guess values
+transitionM <- rbind(c(0, 0.25, 0, 0.25), c(0.166, 0, 0.166, 0.166), c(0, 0.25, 0, 0.25), c(0, 0, 0, 0))
+rownames(transitionM) <- colnames(transitionM) <- c("Well", "Mild", "Severe", "Death")
+
+#maximum likelihood of the transition matrix
+transitionMLE <- msm(state ~ years, subject=PTNUM, data=cav, qmatrix=transitionM, death=4)
+
+#display the fitted transition probabilities at specified time interval
+pmatrix.msm(transitionMLE, t=1, ci="normal")
+
+#fit transition probability matrix with covariates
+cav$ihd <- as.numeric(cav[,"pdiag"]=="IHD")
+transitionMLE.cov <- msm(state ~ years, subject=PTNUM, data=cav, covariates=~dage+ihd, qmatrix=transitionM,death=4,
+                         method="BFGS", control=list(fnscale=4000, maxit=10000))
+
+#hazard ratios (cov value comparison) of transitioning between states
+hazard.msm(transitionMLE.cov)
+
+#calculate transition matrix of specified cov value
+qmatrix.msm(transitionMLE.cov, covariates=list(dage=50,ihd=1))
+
+#model comparisons
+lrtest.msm(transitionMLE,transitionMLE.cov)
+
+
+
+
 
 
 

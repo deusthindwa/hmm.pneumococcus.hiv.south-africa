@@ -30,24 +30,29 @@ cav <- msm::cav
 cav <- cav[!is.na(cav$pdiag),]
 
 #summarise number of transitions between states
+cav[1:20,]
 statetable.msm(cav$state, cav$PTNUM)
 
-#construct a transition intensity matrix ..Q..with initial guess values
+#construct a transition intensity matrix ..Q..with initial diffuse priors
 transitionM <- rbind(c(0, 0.25, 0, 0.25), c(0.166, 0, 0.166, 0.166), c(0, 0.25, 0, 0.25), c(0, 0, 0, 0))
 rownames(transitionM) <- colnames(transitionM) <- c("Well", "Mild", "Severe", "Death")
 
-#maximum likelihood of the transition intensity matrix..Q
+#calulate maximum likelihood estimates of the transition intensity matrix..Q
 transitionMLE <- msm(state ~ years, subject=PTNUM, data=cav, qmatrix=transitionM, death=4)
 
-#obtain transition probability matrix at specified time..Q=Exp(tQ)
+#obtain transition probability matrix at specified time interval of 1 year..Q=Exp(tQ)
 pmatrix.msm(transitionMLE, t=1, ci="normal")
-
+  
 #fit transition intensity matrix..Q..with covariates
-cav$ihd <- as.numeric(cav[,"pdiag"]=="IHD")
-transitionMLE.cov <- msm(state ~ years, subject=PTNUM, data=cav, covariates=~dage+ihd, qmatrix=transitionM,death=4,
+cav$ihd <- as.numeric(cav[,"pdiag"]=="IHD") 
+transitionMLE.cov <- msm(state ~ years, subject=PTNUM, data=cav, covariates=~dage+sex, qmatrix=transitionM,death=4,
                          method="BFGS", control=list(fnscale=4000, maxit=10000))
 
-#hazard ratios (cov value comparison) of transitioning between states
+#obtain transition probability matrix at specified time interval of 1 year..Q=Exp(tQ)..by sex covariate
+pmatrix.msm(transitionMLE.cov, t=1, ci="normal", covariates=list(sex=0))
+pmatrix.msm(transitionMLE.cov, t=1, ci="normal", covariates=list(sex=1))
+
+#calculate hazard ratios (cov value comparison) of transitioning between states log scale
 hazard.msm(transitionMLE.cov)
 
 #calculate transition intensity matrix of specified cov value

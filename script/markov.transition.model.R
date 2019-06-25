@@ -30,7 +30,7 @@ cav <- msm::cav
 cav <- cav[!is.na(cav$pdiag),]
 
 #summarise number of transitions between states
-cav[1:20,]
+cav[1:10,]
 statetable.msm(cav$state, cav$PTNUM)
 
 #construct a transition intensity matrix ..Q..with initial diffuse priors
@@ -40,9 +40,9 @@ rownames(transitionM) <- colnames(transitionM) <- c("Well", "Mild", "Severe", "D
 #calulate maximum likelihood estimates of the transition intensity matrix..Q
 transitionMLE <- msm(state ~ years, subject=PTNUM, data=cav, qmatrix=transitionM, death=4)
 
-#obtain transition probability matrix at specified time interval of 1 year..Q=Exp(tQ)
+#display fitted transition probability matrix over specified time interval of 1 year..Q=Exp(tQ)
 pmatrix.msm(transitionMLE, t=1, ci="normal")
-  
+
 #fit transition intensity matrix..Q..with covariates
 cav$ihd <- as.numeric(cav[,"pdiag"]=="IHD") 
 transitionMLE.cov <- msm(state ~ years, subject=PTNUM, data=cav, covariates=~dage+sex, qmatrix=transitionM,death=4,
@@ -60,14 +60,6 @@ qmatrix.msm(transitionMLE.cov, covariates=list(dage=50,ihd=1))
 
 #model comparisons
 lrtest.msm(transitionMLE,transitionMLE.cov)
-
-
-
-
-
-
-
-
 
 
 

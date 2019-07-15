@@ -44,7 +44,7 @@ transitionMLE <- msm(state ~ years, subject=PTNUM, data=cav, qmatrix=transitionM
 pmatrix.msm(transitionMLE, t=1, ci="normal")
 
 #fit transition intensity matrix..Q..with covariates
-cav$ihd <- as.numeric(cav[,"pdiag"]=="IHD") 
+cav$ihd <- as.numeric(cav[,"pdiag"]=="IHD")
 transitionMLE.cov <- msm(state ~ years, subject=PTNUM, data=cav, covariates=~dage+sex, qmatrix=transitionM,death=4,
                          method="BFGS", control=list(fnscale=4000, maxit=10000))
 
@@ -61,8 +61,32 @@ qmatrix.msm(transitionMLE.cov, covariates=list(dage=50,ihd=1))
 #model comparisons
 lrtest.msm(transitionMLE,transitionMLE.cov)
 
+#hidden Markov model
+fev <- msm::fev
+three.q<-rbind(c(0,exp(-6),exp(-9)), c(0,0,exp(-6)), c(0,0,0))
+hmodel1<-list(hmmNorm(mean=100, sd=16), hmmNorm(mean=54, sd=18), hmmIdent(999))
 
+fev1.msm<-msm(fev~days, subject=ptnum, data=fev, 
+              qmatrix=three.q, 
+              hmodel=hmodel1, 
+              hcovariates=list(~acute, ~acute, NULL),
+              hconstraint=list(acute=c(1,1)),death=3, method="BFGS")
 
+sojourn.msm(fev1.msm)
+viterbi.msm(fev1.msm)
+
+#misclassification
+ematrix<- rbind(c(0,0.1,0,0), c(0.1,0,0.1,0), c(0,0.1,0,0), c(0,0,0,0))
+rownames(ematrix)<-colnames(ematrix)<-c("Well","Mild","Severe","Death")
+one4way<- rbind(c(0,0.1,0,0.04), c(0,0,0.3,0.05), c(0,0,0,0.3), c(0,0,0,0))
+rownames(one4way)<-colnames(one4way)<-c("Well","Mild","Severe","Death")
+
+misc.msm<-msm(state~years, subject=PTNUM, data=cav,
+              qmatrix=one4way,
+              ematrix=ematrix,
+              obstrue=firstobs,
+              death=TRUE,
+              method="BFGS")
 
 
 

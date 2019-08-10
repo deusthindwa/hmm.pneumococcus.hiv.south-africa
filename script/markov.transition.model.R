@@ -1,17 +1,17 @@
 #Written by Deus Thindwa
-#Does household HIV-exposure increase infant risk of pneumococcal carriage acquisition?
-#An analysis using markov transition model
-#PhD chapter 2
+#Does living in a howusehold with HIV-infected individuals increase child risk of pneumococcal carriage acquisition?
+#An analysis using markov transition model, PhD chapter 1.
 #14/05/2019
 
 #load required packages into memory
-phirst.packages <-c("tidyverse","plyr", "msm")
+phirst.packages <-c("tidyverse","plyr","msm","dplyr")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #simulate a phirst dataset
 set.seed(12345)
 sample.size=520
-phirst <- data.frame(hhid=rep(letters[1:26], each=20), pid=rep.int(1:4, 5)) #household id, individual id
+phirst <- data.frame(hhid=rep(letters[1:26], each=20), #household id
+                     pid=rep.int(1:4, 5)) #participant id
 phirst$uid <- apply(phirst, 1 , function(x) paste0(toString(x[1]), toString(x[2]))) #household individual id
 phirst$sample.date <- seq(as.Date('2018/01/01'), as.Date('2019/06/04'), by="day") #sample date
 phirst <- ddply(phirst, .(uid), mutate, sample.point = seq_along(sample.date)) #sample point

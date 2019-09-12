@@ -82,14 +82,14 @@ colnames(model1.E) <- c("SwabNeg","SwabPos")
 rownames(model1.E) <- c("Clear","Carrying")
 
 #create an outcome distribution of each observed state (swabs)
-model1.HMM <- list(hmmBinom(1,0.2), hmmBinom(2,0.8))
+model1.HMM <- list(hmmBinom(1,0.5), hmmBinom(2,0.5))
 
 #fit a 2-state hidden markov model accounting for false negatives
 model1.msm <- msm(state~sample.p, subject=iid, data=phirst,
                   qmatrix=model1.Q,
                   ematrix=model1.E,
                   hmodel=model1.HMM,
-                  covariates= ~agecat,
+                  covariates= ~agecat+hiv,
                   est.initprobs=T,
                   opt.method="bobyqa")
 

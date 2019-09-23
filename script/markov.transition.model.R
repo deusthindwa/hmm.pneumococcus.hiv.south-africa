@@ -82,14 +82,15 @@ colnames(model1.E) <- c("SwabNeg","SwabPos")
 rownames(model1.E) <- c("Clear","Carrying")
 
 #create an outcome distribution of each observed state (swabs)
-model1.HMM <- list(hmmBinom(1,0.2), hmmBinom(2,0.8))
+model1.HMM <- list(hmmBinom(1,0.5), hmmBinom(1,0.5))
 
 #fit a 2-state hidden markov model accounting for false negatives
 model1.msm <- msm(state~sample.p, subject=iid, data=phirst,
                   qmatrix=model1.Q,
                   ematrix=model1.E,
                   hmodel=model1.HMM,
-                  covariates= ~agecat,
+                  #covariates= ~hiv+age,
+                  pci=4,
                   est.initprobs=T,
                   opt.method="bobyqa")
 
@@ -105,6 +106,45 @@ viterbi.msm(model1.msm)
 #diagnosdtics plots
 plot.survfit.msm(model1.msm, main="model 1", mark.time=FALSE)
 plot.prevalence.msm(model1.msm)
+
+#---------------MODEL2 (FALSE NEGATIVES + MULTIPLE ACQUISITIONS)---------------
+#define initial values of a transition intensity matrix Q
+model2.Q <- rbind(c(0.0,0.1,0.0),
+                  c(0.1,0.0,0.1),
+                  c(0.1,0.1,0.0))
+rownames(model2.Q) <- c("Clear","Carrying","newCarriage")
+colnames(model2.Q) <- c("Clear","Carrying","newCarriage")
+
+#define initial values of an emission matrix E
+model2.E <- rbind(c(0.0,0.0,0.0), 
+                  c(0.1,0.0,0.0), 
+                  c(0.1,0.0,0.0))
+rownames(model2.E) <- c("Clear","Carrying","newST")
+colnames(model2.E) <- c("SwabNeg","SwabPos","newST")
+
+#create an outcome distribution of each observed state (swabs)
+model2.HMM <- list(hmmCat(0.3,1),hmmCat(0.3,1),hmmCat(0.3,1))
+
+#fit a 2-state hidden markov model accounting for false negatives
+model2.msm <- msm(state_s~sample.p, subject=iid, data=phirst,
+                  qmatrix=model2.Q,
+                  ematrix=model2.E,
+                  hmodel=model2.HMM,
+                  est.initprobs=T,
+                  opt.method="bobyqa")
+
+#maximum likelihood estimates of intensity matrix and outcome distributions
+printold.msm(model2.msm)
+
+#transition rates and 95%CI of HMM
+sojourn.msm(model2.msm)
+
+#most likely true series of states underlying the data
+viterbi.msm(model2.msm)
+
+#diagnosdtics plots
+plot.survfit.msm(model2.msm, main="model 3", mark.time=FALSE)
+plot.prevalence.msm(model2.msm)
 
 #---------------MODEL3 (FALSE NEGATIVES + MISSING SWABS)---------------
 
@@ -123,13 +163,14 @@ rownames(model3.E) <- c("Clear","Carrying","Missing")
 colnames(model3.E) <- c("SwabNeg","SwabPos","Missing")
 
 #create an outcome distribution of each observed state (swabs)
-model3.HMM <- list(hmmCat(0.2,1),hmmCat(0.7,1),hmmIdent())
+model3.HMM <- list(hmmCat(0.5,1),hmmCat(0.5,1),hmmIdent())
 
 #fit a 2-state hidden markov model accounting for false negatives
 model3.msm <- msm(state_m~sample.p, subject=iid, data=phirst,
                   qmatrix=model3.Q,
                   ematrix=model3.E,
                   hmodel=model3.HMM,
+                  #covariates= ~hiv+age,
                   est.initprobs=T,
                   opt.method="bobyqa")
 
@@ -146,7 +187,52 @@ viterbi.msm(model3.msm)
 plot.survfit.msm(model3.msm, main="model 3", mark.time=FALSE)
 plot.prevalence.msm(model3.msm)
 
-#---------------MODEL2 (FALSE NEGATIVES + MULTIPLE ACQUISITIONS)---------------
+#===================================================================================
+
+#load dataset
+cav[1:21,]
+
+#frequescy of transitions between state pairs
+statetable.msm(state,PTNUM,data=cav)
+
+#Q matrix construction 
+Q<-rbind(c(0.00,0.25,0.00,0.25),
+         c(0.17,0.00,0.17,0.17),
+         c(0.00,0.25,0.00,0.25),
+         c(0.00,0.00,0.00,0.00))
+
+#initial values
+Q.crude<-crudeinits.msm(state~years,PTNUM,data=cav,qmatrix=Q)
+
+#fitting markov model
+cav.msm1<-msm(state~years, subject=PTNUM, data=cav,qmatrix=Q.crude, deathexact=4, cl=0.95)
+printnew.msm(cav.msm1)
+
+#fitting markov model with monitoring of progress
+cav.msm2<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm2)
+
+#fitting markov model with covariate (average transition intensity matrix, with cov set at its mean value in the data)
+cav.msm3<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=~sex, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm3)
+
+#fitting markov model with covariate (male/female seperate transition intensity matrices)
+qmatrix.msm(cav.msm3, covariates=list(sex=0))
+qmatrix.msm(cav.msm3, covariates=list(sex=1))
+qmatrix.msm(cav.msm3, covariates="mean")
+
+#fitting markov model with transition-specific covariates
+cav.msm4<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=list("1-2"=~sex,"1-4"=~sex), control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm3)
+
+#fitting markov model with constrained covariates effects
+cav.msm5<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=~sex, constraint=list(sex=c(1,2,3,1,2,3,2)), control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm5)
+
+#fitting markov model with transition rate 6,7 fixed to initial values of 0.25 as in Q matrix  in case of model indentifiability problemns
+cav.msm6<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, fixedpars=c(6,7), control=list(trace=1,REPORT=1), cl=0.95)
+printold.msm(cav.msm6)
+
 
 
 

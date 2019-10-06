@@ -233,6 +233,7 @@ printnew.msm(cav.msm5)
 cav.msm6<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, fixedpars=c(6,7), control=list(trace=1,REPORT=1), cl=0.95)
 printold.msm(cav.msm6)
 
+qmatrix.msm(cav.msm6, ci="boot")
 
 
 

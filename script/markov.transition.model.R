@@ -4,7 +4,7 @@
 #13/08/2019
 
 #===============load required packages into memory===============
-phirst.packages <-c("tidyverse","plyr","msm","dplyr","minqa","lubridate", "magrittr","data.table")
+phirst.packages <-c("tidyverse","plyr","msm","dplyr","minqa","lubridate", "magrittr","data.table","parallel")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #===============simulate a phirst dataset===============
@@ -82,6 +82,7 @@ colnames(model1.E) <- c("SwabNeg","SwabPos")
 rownames(model1.E) <- c("Clear","Carrying")
 
 #create an outcome distribution of each observed state (swabs)
+model1.HMM <- list(hmmBinom(1,0.5), hmmBinom(2,0.5))
 model1.HMM <- list(hmmBinom(1,0.5), hmmBinom(1,0.5))
 
 #fit a 2-state hidden markov model accounting for false negatives
@@ -89,7 +90,7 @@ model1.msm <- msm(state~sample.p, subject=iid, data=phirst,
                   qmatrix=model1.Q,
                   ematrix=model1.E,
                   hmodel=model1.HMM,
-                  #covariates= ~hiv+age,
+                  covariates= ~agecat+hiv,
                   pci=4,
                   est.initprobs=T,
                   opt.method="bobyqa")
@@ -187,7 +188,7 @@ viterbi.msm(model3.msm)
 plot.survfit.msm(model3.msm, main="model 3", mark.time=FALSE)
 plot.prevalence.msm(model3.msm)
 
-#===================================================================================
+#====================AVALABLE MSM FUNCTIONS IN R===============================================================
 
 #load dataset
 cav[1:21,]
@@ -201,41 +202,82 @@ Q<-rbind(c(0.00,0.25,0.00,0.25),
          c(0.00,0.25,0.00,0.25),
          c(0.00,0.00,0.00,0.00))
 
-#initial values
+#explicitly set Q matrix initial values
 Q.crude<-crudeinits.msm(state~years,PTNUM,data=cav,qmatrix=Q)
 
-#fitting markov model
+#fit the Markov model
 cav.msm1<-msm(state~years, subject=PTNUM, data=cav,qmatrix=Q.crude, deathexact=4, cl=0.95)
 printnew.msm(cav.msm1)
 
-#fitting markov model with monitoring of progress
+#fit Markov model with monitoring of progress
 cav.msm2<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, control=list(trace=1,REPORT=1), cl=0.95)
 printnew.msm(cav.msm2)
 
-#fitting markov model with covariate (average transition intensity matrix, with cov set at its mean value in the data)
+#fit Markov model with covariate (average transition intensity matrix, with cov set at its mean value in the data)
 cav.msm3<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=~sex, control=list(trace=1,REPORT=1), cl=0.95)
 printnew.msm(cav.msm3)
 
-#fitting markov model with covariate (male/female seperate transition intensity matrices)
+#fit Markov model with covariate (male/female seperate transition intensity matrices)
 qmatrix.msm(cav.msm3, covariates=list(sex=0))
 qmatrix.msm(cav.msm3, covariates=list(sex=1))
 qmatrix.msm(cav.msm3, covariates="mean")
 
-#fitting markov model with transition-specific covariates
+#fit Markov model with transition-specific covariates
 cav.msm4<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=list("1-2"=~sex,"1-4"=~sex), control=list(trace=1,REPORT=1), cl=0.95)
 printnew.msm(cav.msm3)
 
-#fitting markov model with constrained covariates effects
-cav.msm5<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=~sex, constraint=list(sex=c(1,2,3,1,2,3,2)), control=list(trace=1,REPORT=1), cl=0.95)
+#fit Markov model with constrained covariates effects
+cav.msm5<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, covariates=~sex, pci=2, constraint=list(sex=c(1,2,3,1,2,3,2)), control=list(trace=1,REPORT=1), cl=0.95)
 printnew.msm(cav.msm5)
 
-#fitting markov model with transition rate 6,7 fixed to initial values of 0.25 as in Q matrix  in case of model indentifiability problemns
-cav.msm6<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, fixedpars=c(6,7), control=list(trace=1,REPORT=1), cl=0.95)
-printold.msm(cav.msm6)
+#fit Markov model with transition rate 6,7 fixed to initial values of 0.25 as in Q matrix  in case of model indentifiability problemns
+cav.msm6<-msm(state~years, subject=PTNUM, data=cav, qmatrix=Q, gen.inits=TRUE, deathexact=4, fixedpars=c(6,7), pci=2, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm6)
 
+#transition intensity matrices extracted from the msm() fit function
+qmatrix.msm(cav.msm6)
+
+#transition ptobability matrices extracted from the msm() fit function
+pmatrix.msm(cav.msm5, t=10, ci="boot", cl=0.95, B=10)
+
+#average period in a single stay in a state (sojourn)
+sojourn.msm(cav.msm5, ci="boot", cl=0.95, B=10)
+
+#Probability that each state is next
+pnext.msm(cav.msm5, ci="boot", cl=0.95, B=10)
+
+#forecasted total length of time spent in each trasient state
+totlos.msm(cav.msm5, ci="boot", cl=0.95, B=10)
+
+#expected time until Markov process first enters a given state (hitting time)
+efpt.msm(cav.msm5, tostate=4, ci="boot", cl=0.95, B=10)
+
+#expected number of visit to a state
+envisits.msm(cav.msm5, ci="boot", cl=0.95, B=10)
+
+#ratio of transition intensities (clearance rate vs acquisition rate)
+qratio.msm(cav.msm5, ind1=c(2,1), ind2=c(1,2), ci="boot", cl=0.95, B=10)
+
+#covariate effect on transition intensities (sex)
+hazard.msm(cav.msm5)
+
+<<<<<<< HEAD
 qmatrix.msm(cav.msm6, ci="boot")
+=======
+#survival plots. 'times' arqument could be added to indicate time interval of predicting survival
+dev.off()
+plot(cav.msm6, legend.pos=c(13,1), lwd=2.5)
+mtext("A", side=3, cex=1.5, adj=0,line=0.5)
+>>>>>>> b03bbd2be6deabf6062321a1f7c7ef4b0ecd10e0
 
+#explicitly calculate the bootstrapped CI (SD and 95%CI)
+qlist <- boot.msm(cav.msm5, stat=function(x){qmatrix.msm(x)$estimates}, B=10)
+qarray <- array(unlist(qlist), dim=c(4,4,10))
+apply(qarray, c(1,2), sd)
+apply(qarray, c(1,2), function(x)quantile(x, c(0.025,0.975)))
 
+#show the contribution of ecah individual to Likelihood
+logLik.msm(cav.msm5, by.subject=TRUE)
 
 
 

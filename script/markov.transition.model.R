@@ -261,14 +261,13 @@ qratio.msm(cav.msm5, ind1=c(2,1), ind2=c(1,2), ci="boot", cl=0.95, B=10)
 #covariate effect on transition intensities (sex)
 hazard.msm(cav.msm5)
 
-<<<<<<< HEAD
-qmatrix.msm(cav.msm6, ci="boot")
-=======
+#baseline transition rates only
+qmatrix.msm(cav.msm6, ci="boot",cl=0.95, B=10, covariates=0)
+
 #survival plots. 'times' arqument could be added to indicate time interval of predicting survival
 dev.off()
 plot(cav.msm6, legend.pos=c(13,1), lwd=2.5)
 mtext("A", side=3, cex=1.5, adj=0,line=0.5)
->>>>>>> b03bbd2be6deabf6062321a1f7c7ef4b0ecd10e0
 
 #explicitly calculate the bootstrapped CI (SD and 95%CI)
 qlist <- boot.msm(cav.msm5, stat=function(x){qmatrix.msm(x)$estimates}, B=10)
@@ -278,6 +277,53 @@ apply(qarray, c(1,2), function(x)quantile(x, c(0.025,0.975)))
 
 #show the contribution of ecah individual to Likelihood
 logLik.msm(cav.msm5, by.subject=TRUE)
+
+#model assessment-calculate obs and exp
+options(digits=3)
+prevalence.msm(cav.msm6, times=seq(0,20,2))
+
+#model assessment-plot prevalence (exp/obs)
+plot.prevalence.msm(cav.msm6, mintime=0, maxtime=10, legend.pos=c(0,100))
+
+#model assessment-pearson-type goodness-of-fit-test
+options(digits=2)
+pearson.msm(cav.msm6, timegroups=2, transitions =c(1,2,3,4,5,6,7,8,9,9,9,10))
+
+#misclassifed model without covariates
+Qm <- rbind(c(0.0000, 0.1480, 0.0000, 0.0171),
+            c(0.0000, 0.0000, 0.2020, 0.0810),
+            c(0.0000, 0.0000, 0.0000, 0.1260),
+            c(0.0000, 0.0000, 0.0000, 0.0000))
+
+Em <- rbind(c(0.0000, 0.1000, 0.0000, 0.0000),
+            c(0.1000, 0.0000, 0.1000, 0.0000),
+            c(0.0000, 0.1000, 0.0000, 0.0000),
+            c(0.0000, 0.0000, 0.0000, 0.0000))
+         
+cav.msm7 <- msm(state~years, subject=PTNUM, data=cav, qmatrix=Qm, ematrix=Em,
+                deathexact=4,obstrue=firstobs, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm7)
+
+#misclassifed model with covariates
+cav.msm8 <- msm(state~years, subject=PTNUM, data=cav, qmatrix=Qm, ematrix=Em, misccovariates=~sex,
+                deathexact=4,obstrue=firstobs, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(cav.msm7)
+
+#misclassfied by covariate value
+ematrix.msm(cav.msm8, covariates=list(sex=0))
+ematrix.msm(cav.msm8, covariates=list(sex=1))
+
+#odds ratio for misclassification
+odds.msm(cav.msm7)
+
+#prevalence of observed v expected states
+plot.prevalence.msm(cav.msm7)
+
+#pearson test for goodness of fit
+pearson.msm(cav.msm7, timegroups=2, transitions=c(1,2,3,4,5,6,7,8,9,9,9,10))
+
+#hidden markov models without misclassifications
+
 
 
 

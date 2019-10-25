@@ -188,7 +188,7 @@ viterbi.msm(model3.msm)
 plot.survfit.msm(model3.msm, main="model 3", mark.time=FALSE)
 plot.prevalence.msm(model3.msm)
 
-#====================AVALABLE MSM FUNCTIONS IN R===============================================================
+#====================AVAILABLE MSM FUNCTIONS IN R===============================================================
 
 #load dataset
 cav[1:21,]
@@ -314,7 +314,7 @@ ematrix.msm(cav.msm8, covariates=list(sex=0))
 ematrix.msm(cav.msm8, covariates=list(sex=1))
 
 #odds ratio for misclassification
-odds.msm(cav.msm7)
+odds.msm(cav.msm8)
 
 #prevalence of observed v expected states
 plot.prevalence.msm(cav.msm7)

@@ -237,7 +237,7 @@ printnew.msm(cav.msm6)
 #transition intensity matrices extracted from the msm() fit function
 qmatrix.msm(cav.msm6)
 
-#transition ptobability matrices extracted from the msm() fit function
+#transition probability matrices extracted from the msm() fit function
 pmatrix.msm(cav.msm5, t=10, ci="boot", cl=0.95, B=10)
 
 #average period in a single stay in a state (sojourn)
@@ -323,6 +323,69 @@ plot.prevalence.msm(cav.msm7)
 pearson.msm(cav.msm7, timegroups=2, transitions=c(1,2,3,4,5,6,7,8,9,9,9,10))
 
 #hidden markov models without misclassifications
+
+
+#====================PHIRST SIMULATION IN R===============================================================
+
+#load the simulated dataset and select required variables
+phirst <- cav[1:2846,]
+phirst <-subset(phirst, select=c(PTNUM,age,years,pdiag,state,firstobs))
+colnames(phirst) <-c("iid","agey","wks","hiv","state","firstobs")
+phirst$hiv <-if_else(phirst$hiv=="IHD",0L,1L)
+phirst$state <-if_else(phirst$state==3,1L,if_else(phirst$state==4,2L,if_else(phirst$state==1,1L,2L)))
+
+#check the transitions
+statetable.msm(state,iid,data=phirst)
+
+#define initial values of a transition intensity matrix Q
+model1.Q <- rbind(c(0.0,0.1), 
+                  c(0.1,0.0))
+rownames(model1.Q) <- c("Clear","Carrying")
+colnames(model1.Q) <- c("Clear","Carrying")
+
+#fit Markov model1 without covariate
+phirst.model1<-msm(state~wks, subject=iid, data=phirst, qmatrix=model1.Q, gen.inits=TRUE, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(phirst.model1)
+
+#fit Markov model1 with covariate (average transition intensity matrix, with covariates set to mean values in the data)
+phirst.model1<-msm(state~wks, subject=iid, data=phirst, qmatrix=model1.Q, gen.inits=TRUE, covariates=~agey+hiv, control=list(trace=1,REPORT=1), cl=0.95)
+printnew.msm(phirst.model1)
+
+#fit Markov model1 with covariate (HIV+/HIV- seperate transition intensity matrices)
+qmatrix.msm(phirst.model1, covariates=list(hiv=0))
+qmatrix.msm(phirst.model1, covariates=list(hiv=1))
+qmatrix.msm(phirst.model1, covariates="mean")
+
+#transition probability matrices extracted from the msm() fit function
+pmatrix.msm(phirst.model1, t=10, ci="boot", cl=0.95, B=10)
+
+#average period in a single stay in a state (sojourn)
+sojourn.msm(phirst.model1, ci="boot", cl=0.95, B=10)
+
+#Probability that each state is next
+pnext.msm(phirst.model1, ci="boot", cl=0.95, B=10)
+
+#forecasted total length of time spent in each trasient state
+totlos.msm(phirst.model1, ci="boot", cl=0.95, B=10)
+
+#expected time until Markov process first enters a given state (hitting time)
+efpt.msm(phirst.model1, tostate=2, ci="boot", cl=0.95, B=10)
+
+#expected number of visit to a state
+envisits.msm(phirst.model1, ci="boot", cl=0.95, B=10)
+
+#ratio of transition intensities (clearance rate vs acquisition rate)
+qratio.msm(phirst.model1, ind1=c(2,1), ind2=c(1,2), ci="boot", cl=0.95, B=10)
+
+#covariate effect on transition intensities (sex)
+hazard.msm(phirst.model1)
+
+#baseline transition rates only
+qmatrix.msm(phirst.model1, ci="boot",cl=0.95, B=10, covariates=0)
+
+#diagnostics
+prevalence.msm(phirst.model1)
+plot.prevalence.msm(phirst.model1, mintime = 0, maxtime = 20)
 
 
 

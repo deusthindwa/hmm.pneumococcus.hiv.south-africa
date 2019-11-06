@@ -1,0 +1,9 @@
+﻿State,Age,HIV,Intensity,Lintensity,Uintensity
+Clearance,Child,Positive,11.9,5.5,25.5
+Clearance,Child,Negative,16.8,8,35.3
+Acquisition,Child,Positive,14.1,9.3,21.4
+Acquisition,Child,Negative,9.7,7,13.4
+Clearance,Adult,Positive,13.3,7.4,23.7
+Clearance,Adult,Negative,18.7,11.1,31.4
+Acquisition,Adult,Positive,14,11.4,17.2
+Acquisition,Adult,Negative,9.6,7.2,12.7

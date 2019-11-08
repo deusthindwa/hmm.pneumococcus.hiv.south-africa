@@ -1,0 +1,13 @@
+﻿State,Age,HIV,Intensity,Lintensity,Uintensity
+Acquisition,Child,Househild with HIV+ AdultsPositive,11.9,5.5,25.5
+Acquisition,Child-,Househild with HIV+ AdultsPositive,16.8,8,35.3
+Acquisition,Child+,Househild with HIV+ AdultsPositive,14.1,9.3,21.4
+Acquisition,Child,Househild with HIV- AdultsPositive,9.7,7,13.4
+Acquisition,Child+,Househild with HIV- AdultsPositive,13.3,7.4,23.7
+Acquisition,Child-,Househild with HIV- AdultsPositive,18.7,11.1,31.4
+Clearance,Child,Househild with HIV+ AdultsPositive,11.9,5.5,25.5
+Clearance,Child-,Househild with HIV+ AdultsPositive,16.8,8,35.3
+Clearance,Child+,Househild with HIV+ AdultsPositive,14.1,9.3,21.4
+Clearance,Child,Househild with HIV- AdultsPositive,9.7,7,13.4
+Clearance,Child+,Househild with HIV- AdultsPositive,13.3,7.4,23.7
+Clearance,Child-,Househild with HIV- AdultsPositive,18.7,11.1,31.4

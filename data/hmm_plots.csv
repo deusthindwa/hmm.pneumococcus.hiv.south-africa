@@ -1,0 +1,13 @@
+﻿State,Age,HIV,Intensity,Lintensity,Uintensity
+Pneumococcal acquisition,All children,Households with HIV+ Adults,17.9,15.5,25.5
+Pneumococcal acquisition,HIV+ child,Households with HIV+ Adults,26.8,18,35.3
+Pneumococcal acquisition,HIV- child,Households with HIV+ Adults,12.1,9.3,16.4
+Pneumococcal acquisition,All children,Households with HIV- Adults,9.7,7,13.4
+Pneumococcal acquisition,HIV+ child,Households with HIV- Adults,13.3,8.4,16.7
+Pneumococcal acquisition,HIV- child,Households with HIV- Adults,6.7,4.1,11.4
+Pneumococcal clearance,All children,Households with HIV+ Adults,4.9,3.5,5.5
+Pneumococcal clearance,HIV+ child,Households with HIV+ Adults,3.8,2,5.3
+Pneumococcal clearance,HIV- child,Households with HIV+ Adults,5.1,2.3,7.4
+Pneumococcal clearance,All children,Households with HIV- Adults,9.7,5.1,13.4
+Pneumococcal clearance,HIV+ child,Households with HIV- Adults,13.3,7.4,23.7
+Pneumococcal clearance,HIV- child,Households with HIV- Adults,18.7,11.1,21.4

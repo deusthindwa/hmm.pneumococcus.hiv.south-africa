@@ -259,14 +259,13 @@ ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) +
 #---------------plot the transition probabilities of a fitted Markov model2
 hmm_g_plot2 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_prob_plots.csv"))
 dev.off()
-ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) + 
-  #scale_color_manual(values=c('darkred','blue','red','darkblue')) + 
+ggplot(hmm_g_plot2, aes(x=Age, y=Intensity*100, color=Age)) + 
   geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
   geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
   facet_grid(.~State, scales="free_y") +
-  ylim(c(0,10)) +
+  ylim(c(0,100)) +
   theme_bw() +
-  ylab("Transition per 100 days") +
+  ylab("Probability (%)") +
   xlab("") +
   theme(strip.text.x = element_text(size = 11, face="bold", color="black")) +
   theme(axis.text.x = element_text(face="bold", size=0), axis.text.y = element_text(face="bold", size=10)) + 

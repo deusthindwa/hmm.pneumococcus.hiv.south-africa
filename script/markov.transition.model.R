@@ -257,7 +257,7 @@ ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) +
   theme(legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
 
 #---------------plot the transition probabilities of a fitted Markov model2
-hmm_g_plot1 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_general_plots.csv"))
+hmm_g_plot2 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_prob_plots.csv"))
 dev.off()
 ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) + 
   #scale_color_manual(values=c('darkred','blue','red','darkblue')) + 

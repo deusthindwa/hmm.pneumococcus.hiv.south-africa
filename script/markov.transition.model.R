@@ -146,7 +146,11 @@ p.model0<-msm(state~dys, subject=ind_id, data=phirst.fu,
               qmatrix=matrix.Q, 
               covariates=~age+hiv,
               opt.method="bobyqa")
+<<<<<<< HEAD
 printnew.msm(p.model0)
+=======
+printnew.msm(p.model1)
+>>>>>>> 66bff3527e43f57d3d9bd28820546cf31be186ae
 
 #---------------fitting a time-inhomogeneous model without misclassification
 p.model1<-msm(state~dys, subject=ind_id, data=phirst.fu, 
@@ -202,6 +206,7 @@ p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 ematrix=matrix.E,
                 covariates= ~age+hiv,
                 #misccovariates = ~age,
+<<<<<<< HEAD
                 pci=c(100,150,200,225,275),
                 est.initprobs=T,
                 opt.method="bobyqa")
@@ -366,6 +371,181 @@ colnames(matrix.E.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C
 
 #---------------remove individuals not contributing to Likelihood
 #phirst.tx <- phirst.tx[as.logical(ave(1:nrow(phirst.tx), phirst.tx$hh_id, FUN=function(x) length(x)>1)),]
+=======
+                est.initprobs=T,
+                #control=list(trace=1,REPORT=1,maxit=10000), cl=0.95)
+                opt.method="bobyqa")
+printnew.msm(p.model2)
+
+#---------------transition intensity matrix for a model with misclassification with covariates (Table 2)
+qmatrix.msm(p.model2, covariates=list(hiv=1, age=0))
+qmatrix.msm(p.model2, covariates=list(hiv=0, age=0))
+qmatrix.msm(p.model2, covariates=list(hiv=1, age=1))
+qmatrix.msm(p.model2, covariates=list(hiv=0, age=1))
+
+#---------------transition probability matrix for model with misclassification with covariates (Table 3)
+pmatrix.msm(p.model2, covariates=list(hiv=1, age=0),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0, age=0),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=1, age=1),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0, age=1),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
+
+#---------------pearson-type goodness of fit
+options(digits=2)
+pearson.msm(p.model2, timegroups=2)
+
+#---------------expected vs observed carriage
+dev.off()
+par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
+plot.prevalence.msm(p.model2, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2.5,lwd.exp=2.5,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+legend(0, 100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
+
+#---------------likelihood surfaces
+surface.msm(p.model2,params=c(4,1),type="filled.contour")
+
+#---------------average period in a single stay in a state (sojourn)
+sojourn.msm(p.model2)
+
+#---------------Probability that each state is next
+pnext.msm(p.model2)
+
+#---------------forecasted total length of time spent in each trasient state
+totlos.msm(p.model2, tot=289)
+
+#---------------expected time until Markov process first enters a carrying state (hitting time)
+efpt.msm(p.model2, tostate=2)
+
+#---------------expected number of visits to a state
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=0),ci="bootstrap",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=0),ci="bootstrap",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=1),ci="bootstrap",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=1),ci="bootstrap",B=5,cl=0.95,cores=3)
+
+#---------------viterbi algorithm
+viterbi.hhm <- viterbi.msm(p.model2)
+
+#---------------plot the transition intensities of a fitted Markov model2
+hmm_g_plot1 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_general_plots.csv"))
+dev.off()
+ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) + 
+  geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
+  geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
+  facet_grid(.~State, scales="free_y") +
+  ylim(c(0,10)) +
+  theme_bw() +
+  ylab("Transition per 100 days") +
+  xlab("") +
+  theme(strip.text.x = element_text(size = 11, face="bold", color="black")) +
+  theme(axis.text.x = element_text(face="bold", size=0), axis.text.y = element_text(face="bold", size=10)) + 
+  guides(color=guide_legend(title="")) +
+  theme(legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
+
+#---------------plot the transition probabilities of a fitted Markov model2
+hmm_g_plot2 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_prob_plots.csv"))
+dev.off()
+ggplot(hmm_g_plot2, aes(x=Age, y=Intensity*100, color=Age)) + 
+  geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
+  geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
+  facet_grid(.~State, scales="free_y") +
+  ylim(c(0,100)) +
+  theme_bw() +
+  ylab("Probability (%)") +
+  xlab("") +
+  theme(strip.text.x = element_text(size = 11, face="bold", color="black")) +
+  theme(axis.text.x = element_text(face="bold", size=0), axis.text.y = element_text(face="bold", size=10)) + 
+  guides(color=guide_legend(title="")) +
+  theme(legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
+
+#===============hidden Markov modelling with transmission assumptions
+
+#---------------generate individual state per household
+phirst.tx <- phirst.fu
+phirst.tx$visitno <- as.integer(substr(phirst.tx$visit_id,10,12))
+phirst.tx$hstate <- if_else(phirst.tx$state==1 & phirst.tx$age==0 & phirst.tx$hiv==0,1,
+                            if_else(phirst.tx$state==2 & phirst.tx$age==0 & phirst.tx$hiv==0,2,
+                                    if_else(phirst.tx$state==1 & phirst.tx$age==1 & phirst.tx$hiv==0,3,
+                                            if_else(phirst.tx$state==2 & phirst.tx$age==1 & phirst.tx$hiv==0,4,
+                                                    if_else(phirst.tx$state==1 & phirst.tx$age==0 & phirst.tx$hiv==1,5,
+                                                            if_else(phirst.tx$state==2 & phirst.tx$age==0 & phirst.tx$hiv==1,6,
+                                                                    if_else(phirst.tx$state==1 & phirst.tx$age==1 & phirst.tx$hiv==1,7,
+                                                                            if_else(phirst.tx$state==2 & phirst.tx$age==1 & phirst.tx$hiv==1,8,NULL))))))))
+
+phirst.tx <- subset(phirst.tx, select=c(hh_id,visitno,hstate))
+phirst.tx <- reshape(phirst.tx, idvar=c("hh_id","visitno"), timevar="hstate",v.names="hstate", direction="wide")
+phirst.tx <- subset(phirst.tx, select=c(hh_id,visitno,hstate.1,hstate.2,hstate.3,hstate.4,hstate.5,hstate.6,hstate.7,hstate.8))
+
+#---------------assign state to each household based on observed carriage sequence and transmission assumption
+
+#--------------- transmission assumptions  
+phirst.tx <- phirst.tx %>%
+  mutate(phirst.tx, state=if_else(!is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),1,
+                                  if_else(!is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),2,
+                                          if_else(!is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & !is.na(hstate.8),3,
+                                                  if_else(is.na(hstate.1) & !is.na(hstate.2) & !is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),4,
+                                                          if_else(is.na(hstate.1) & !is.na(hstate.2) & is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),5,
+                                                                  if_else(is.na(hstate.1) & !is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & !is.na(hstate.8),6,
+                                                                          if_else(is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),7,
+                                                                                  if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),8,
+                                                                                          if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & !is.na(hstate.8),9,
+                                                                                                  
+                          if_else(!is.na(hstate.1) & !is.na(hstate.2) & !is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),5,
+                                  if_else(!is.na(hstate.1) & !is.na(hstate.2) & !is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),4,
+                                          if_else(!is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),2,
+                                                  if_else(!is.na(hstate.1) & !is.na(hstate.2) & is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),5,
+                                                          if_else(is.na(hstate.1) & !is.na(hstate.2) & !is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),5,
+                                                          
+                                  if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & !is.na(hstate.5) & !is.na(hstate.6) & !is.na(hstate.7) & !is.na(hstate.8),9,
+                                          if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & !is.na(hstate.5) & !is.na(hstate.6) & !is.na(hstate.7) & is.na(hstate.8),7,
+                                                  if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & !is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & !is.na(hstate.8),9,
+                                                          if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & !is.na(hstate.6) & !is.na(hstate.7) & !is.na(hstate.8),9,
+                                                                  
+                                  if_else(!is.na(hstate.1) & !is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & !is.na(hstate.7) & !is.na(hstate.8),6,
+                                          if_else(!is.na(hstate.1) & !is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & !is.na(hstate.8),6,
+                                                  if_else(!is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & !is.na(hstate.7) & !is.na(hstate.8),3,
+                                                          if_else(is.na(hstate.1) & !is.na(hstate.2) & is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & !is.na(hstate.7) & !is.na(hstate.8),6,
+                                                                  
+                                  if_else(is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & !is.na(hstate.4) & !is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),8,
+                                          if_else(is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),8,
+                                                  if_else(is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & !is.na(hstate.4) & !is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),8,
+                                                          if_else(is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & is.na(hstate.4) & !is.na(hstate.5) & !is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),7,NULL)))))))))))))))))))))))))))
+                                                                  
+
+#---------------show transition frequency in state table
+statetable.msm(state,hh_id,data=phirst.tx)
+
+#---------------initiate transition intensity matrix Q
+matrix.Q.tx <- rbind(c(0.0,0.1,0.0,0.1,0.1,0.0,0.0),
+                     c(0.1,0.0,0.0,0.1,0.1,0.0,0.0),
+                     c(0.0,0.0,0.0,0.0,0.0,0.0,0.0),
+                     c(0.1,0.1,0.0,0.0,0.1,0.0,0.0),
+                     c(0.1,0.1,0.0,0.1,0.0,0.0,0.0),
+                     c(0.0,0.0,0.1,0.0,0.0,0.0,0.0),
+                     c(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
+rownames(matrix.Q.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
+colnames(matrix.Q.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
+
+matrix.E.tx <- rbind(c(0.4,0.1,0.1,0.1,0.1,0.1,0.1),
+                     c(0.1,0.4,0.1,0.1,0.1,0.1,0.1),
+                     c(0.1,0.1,0.4,0.1,0.1,0.1,0.1),
+                     c(0.1,0.1,0.1,0.4,0.1,0.1,0.1),
+                     c(0.1,0.1,0.1,0.1,0.4,0.1,0.1),
+                     c(0.1,0.1,0.1,0.1,0.1,0.4,0.1),
+                     c(0.1,0.1,0.1,0.1,0.1,0.1,0.4))
+rownames(matrix.E.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
+colnames(matrix.E.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
+
+#---------------initiate hidden Markov matrix E
+hmodel.E <- list(hmmCat(0.5,1),hmmCat(0.5,1),hmmCat(0.5,1),hmmCat(0.5,1),hmmCat(0.5,1),hmmCat(0.5,1),hmmCat(0.5,1))
+
+#---------------fitting a transmission model without misclassification
+phirst.tx <- arrange(phirst.tx,hh_id,visitno)
+p.model1.tx<-msm(state~visitno, subject=hh_id, data=phirst.tx, 
+              qmatrix=matrix.Q.tx,
+              ematrix=matrix.E.tx,
+              hessian=FALSE,
+              opt.method="bobyqa",
+              control=list(fnscale=4000,maxit=10000))
+ printnew.msm(p.model1.tx)
+>>>>>>> 66bff3527e43f57d3d9bd28820546cf31be186ae
 
 #---------------fitting a transmission model without misclassification
 phirst.tx <- arrange(phirst.tx, hh_id,visitno)
@@ -379,9 +559,12 @@ p.model3 <- msm(state~visitno, subject=hh_id, data=phirst.tx,
               #control=list(fnscale=4000,maxit=10000))
  printnew.msm(p.model3)
 
+<<<<<<< HEAD
  #---------------model diagnostics
 logLik.msm(p.model3, by.subject=TRUE)
  
+=======
+>>>>>>> 66bff3527e43f57d3d9bd28820546cf31be186ae
 #---------------plot the fit Markov model1 with covariates in combination
 hmm_plots <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_plots.csv"))
 dev.off()

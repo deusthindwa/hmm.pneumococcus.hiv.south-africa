@@ -146,6 +146,7 @@ p.model0<-msm(state~dys, subject=ind_id, data=phirst.fu,
               qmatrix=matrix.Q, 
               covariates=~age+hiv,
               opt.method="bobyqa")
+
 printnew.msm(p.model0)
 
 #---------------fitting a time-inhomogeneous model without misclassification
@@ -154,6 +155,7 @@ p.model1<-msm(state~dys, subject=ind_id, data=phirst.fu,
               covariates=~age+hiv,
               pci=c(100,150,200,225,275),
               opt.method="bobyqa")
+
 printnew.msm(p.model1)
 
 #---------------Likelihood ratio test
@@ -201,10 +203,10 @@ p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates= ~age+hiv,
-                #misccovariates = ~age,
                 pci=c(100,150,200,225,275),
                 est.initprobs=T,
                 opt.method="bobyqa")
+
 printnew.msm(p.model2)
 
 #---------------transition intensity matrix for a model with misclassification with covariates (Table 2)
@@ -220,17 +222,14 @@ pmatrix.msm(p.model2, covariates=list(hiv=1, age=1),t1=0,t=289,ci="bootstrap",B=
 pmatrix.msm(p.model2, covariates=list(hiv=0, age=1),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
 
 #---------------pearson-type goodness of fit
-options(digits=2)
-pearson.msm(p.model2, timegroups=2)
+#options(digits=2)
+#pearson.msm(p.model2, timegroups=2)
 
 #---------------expected vs observed carriage
-dev.off()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model2, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2.5,lwd.exp=2.5,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
-legend(0, 100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
-
-#---------------likelihood surfaces
-surface.msm(p.model2,params=c(4,1),type="filled.contour")
+#dev.off()
+#par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
+#plot.prevalence.msm(p.model2, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2.5,lwd.exp=2.5,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+#legend(0, 100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
 
 #---------------average period in a single stay in a state (sojourn)
 sojourn.msm(p.model2)
@@ -251,12 +250,39 @@ envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=1),ci="bootstr
 envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=1),ci="bootstrap",B=5,cl=0.95,cores=3)
 
 #---------------viterbi algorithm
-viterbi.hhm <- viterbi.msm(p.model2)
+phirst.vi <- viterbi.msm(p.model1)
+phirst.vi$time <- as.integer(phirst.vi$time)
+phirst.vi$observed <- as.integer(phirst.vi$observed)
+phirst.vi$fitted <- as.integer(phirst.vi$fitted)
+pstate <- as.data.frame(phirst.vi$pstate)
+phirst.vi$probhs1 <- pstate$V1
+phirst.vi$probhs2 <- pstate$V2
+remove(pstate); phirst.vi$pstate <- NULL
 
-#---------------plot the transition intensities of a fitted Markov model2
-hmm_g_plot1 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_general_plots.csv"))
 dev.off()
-ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) + 
+hmm.plot1 <-ggplot(subset(phirst.vi,subject=="A001-001")) +
+  geom_point(aes(time,fitted), color='red') + 
+  scale_y_continuous(breaks=c(1L,2L)) +
+  theme_bw() +
+  ylab("Fitted states") +
+  xlab("") +
+  theme(strip.text.x = element_text(size=11, face="bold", color="black")) +
+  theme(axis.text.x = element_text(face="bold", size=11), axis.text.y = element_text(face="bold", size=10)) 
+
+hmm.plot2 <-ggplot(subset(phirst.vi,subject=="A001-001")) +
+  geom_line(aes(time,probhs2), color='blue') +
+  theme_bw() +
+  ylab("Probability of hidden state") +
+  xlab("Time (days)") +
+  theme(strip.text.x = element_text(size=11, face="bold", color="black")) +
+  theme(axis.text.x = element_text(face="bold", size=11), axis.text.y = element_text(face="bold", size=10)) 
+
+  grid.arrange(grobs=list(hmm.plot1,hmm.plot2),ncol=1,nrow=2)
+
+#---------------plot the transition intensities of a fitted HM model2
+hmm.plot3 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_general_plots.csv"))
+dev.off()
+ggplot(hmm.plot3, aes(x=Age, y=Intensity*100, color=Age)) + 
   geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
   geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
   facet_grid(.~State, scales="free_y") +
@@ -269,10 +295,10 @@ ggplot(hmm_g_plot1, aes(x=Age, y=Intensity*100, color=Age)) +
   guides(color=guide_legend(title="")) +
   theme(legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
 
-#---------------plot the transition probabilities of a fitted Markov model2
-hmm_g_plot2 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_prob_plots.csv"))
+#---------------plot the transition probabilities of a fitted HM model2
+hmm.plot4 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_prob_plots.csv"))
 dev.off()
-ggplot(hmm_g_plot2, aes(x=Age, y=Intensity*100, color=Age)) + 
+ggplot(hmm.plot4, aes(x=Age, y=Intensity*100, color=Age)) + 
   geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
   geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
   facet_grid(.~State, scales="free_y") +
@@ -287,7 +313,7 @@ ggplot(hmm_g_plot2, aes(x=Age, y=Intensity*100, color=Age)) +
 
 #===============hidden Markov modelling with transmission assumptions
 
-#---------------generate individual state per household
+#---------------define possible sequence of observed carriage data
 phirst.tx <- phirst.fu
 phirst.tx$visitno <- as.integer(substr(phirst.tx$visit_id,10,12))
 phirst.tx$hstate <- if_else(phirst.tx$state==1 & phirst.tx$age==0 & phirst.tx$hiv==0,1,
@@ -303,9 +329,7 @@ phirst.tx <- subset(phirst.tx, select=c(hh_id,visitno,hstate))
 phirst.tx <- reshape(phirst.tx, idvar=c("hh_id","visitno"), timevar="hstate",v.names="hstate", direction="wide")
 phirst.tx <- subset(phirst.tx, select=c(hh_id,visitno,hstate.1,hstate.2,hstate.3,hstate.4,hstate.5,hstate.6,hstate.7,hstate.8))
 
-#---------------assign state to each household based on observed carriage sequence and transmission assumption
-
-#--------------- transmission assumptions  
+#---------------generate single household state per unit time based on observed carriage sequence and transmission assumption
 phirst.tx <- phirst.tx %>%
   mutate(phirst.tx, state=if_else(!is.na(hstate.1) & is.na(hstate.2) & !is.na(hstate.3) & is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),1,
                                   if_else(!is.na(hstate.1) & is.na(hstate.2) & is.na(hstate.3) & !is.na(hstate.4) & is.na(hstate.5) & is.na(hstate.6) & is.na(hstate.7) & is.na(hstate.8),2,
@@ -343,59 +367,37 @@ phirst.tx <- phirst.tx %>%
 statetable.msm(state,hh_id,data=phirst.tx)
 
 #---------------initiate transition intensity matrix Q
-matrix.Q.tx <- rbind(c(0.0,0.1,0.1,0.1,0.0,0.0,0.1),
+matrix.Q.tx <- rbind(c(0.0,0.1,0.1,0.1,0.0,0.0,0.0),
                      c(0.1,0.0,0.0,0.0,0.1,0.0,0.0),
                      c(0.1,0.0,0.0,0.0,0.0,0.1,0.0),
                      c(0.1,0.0,0.0,0.0,0.1,0.1,0.0),
                      c(0.0,0.0,0.0,0.0,0.0,0.0,0.0),
                      c(0.0,0.0,0.0,0.0,0.0,0.0,0.0),
-                     c(0.1,0.0,0.0,0.0,0.0,0.0,0.0))
+                     c(0.0,0.0,0.0,0.0,0.0,0.0,0.0))
 rownames(matrix.Q.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
 colnames(matrix.Q.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
 
 #---------------initiate hidden Markov matrix E
-matrix.E.tx <- rbind(c(0.4,0.1,0.1,0.1,0.1,0.1,0.1),
-                     c(0.1,0.4,0.1,0.1,0.1,0.1,0.1),
-                     c(0.1,0.1,0.4,0.1,0.1,0.1,0.1),
-                     c(0.1,0.1,0.1,0.4,0.1,0.1,0.1),
-                     c(0.1,0.1,0.1,0.1,0.4,0.1,0.1),
-                     c(0.1,0.1,0.1,0.1,0.1,0.4,0.1),
-                     c(0.1,0.1,0.1,0.1,0.1,0.1,0.4))
+matrix.E.tx <- rbind(c(0.6,0.1,0.1,0.1,0.0,0.0,0.0),
+                     c(0.1,0.8,0.0,0.0,0.1,0.0,0.0),
+                     c(0.1,0.0,0.8,0.0,0.0,0.1,0.0),
+                     c(0.1,0.0,0.0,0.7,0.1,0.1,0.0),
+                     c(0.0,0.0,0.0,0.0,1.0,0.0,0.0),
+                     c(0.0,0.0,0.0,0.0,0.0,1.0,0.0),
+                     c(0.0,0.0,0.0,0.0,0.0,0.0,0.9))
 rownames(matrix.E.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
 colnames(matrix.E.tx) <- c("-C-,-A-","-C-,+A-","-C-,+A+","+C-,-A-","+C-,+A-","+C-,+A+","+C+,-A-")
 
-#---------------remove individuals not contributing to Likelihood
-#phirst.tx <- phirst.tx[as.logical(ave(1:nrow(phirst.tx), phirst.tx$hh_id, FUN=function(x) length(x)>1)),]
-
 #---------------fitting a transmission model without misclassification
-phirst.tx <- arrange(phirst.tx, hh_id,visitno)
-p.model3 <- msm(state~visitno, subject=hh_id, data=phirst.tx, 
+phirst.tx <- arrange(phirst.tx,hh_id,visitno)
+p.model3<-msm(state~visitno, subject=hh_id, data=phirst.tx, 
               qmatrix=matrix.Q.tx,
               ematrix=matrix.E.tx,
               est.initprobs=T,
-              hessian=FALSE,
-              opt.method="bobyqa")
-              #control=list(reltol=1e-16))
-              #control=list(fnscale=4000,maxit=10000))
- printnew.msm(p.model3)
+              opt.method="bobyqa", control=list(maxfun=250000))
+printnew.msm(p.model3)
+save(p.model3)
 
- #---------------model diagnostics
+#---------------model diagnostics
 logLik.msm(p.model3, by.subject=TRUE)
  
-#---------------plot the fit Markov model1 with covariates in combination
-hmm_plots <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_plots.csv"))
-dev.off()
-ggplot(hmm_plots, aes(x=Age, y=Intensity, group=HIV, color=HIV)) + 
-  scale_color_manual(values=c('#999999','#E69F00')) + 
-  geom_point(size=3,position=position_dodge(width=0.3),stat="identity") +
-  geom_errorbar(aes(ymin=Lintensity, ymax=Uintensity), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
-  facet_grid(.~State, scales="free_y") +
-  ylim(c(0,50)) +
-  theme_bw() +
-  ylab("Weekly transition rate (%)") +
-  xlab("Age group") +
-  theme(strip.text.x = element_text(size = 11, face="bold", color="black")) +
-  theme(axis.text.x = element_text(face="bold", size=10), axis.text.y = element_text(face="bold", size=10)) + 
-  guides(color=guide_legend(title="")) +
-  theme(legend.position = c(0.8,0.85), legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
-

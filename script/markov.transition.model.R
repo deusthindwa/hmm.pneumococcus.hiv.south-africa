@@ -95,7 +95,7 @@ phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Posi
 phirst.hhhiv$age <- phirst.hhhiv$hiv <- NULL
 phirst.hhhiv <- setDT(phirst.hhhiv)[,list(nahiv=sum(hhiv)), by=.(hh_id)]
 phirst.hhhiv$nahivst <- if_else(phirst.hhhiv$nahiv>=1,"Yes",
-                           if_else(phirst.hhhiv$nahiv==0,"No",NULL))
+                                if_else(phirst.hhhiv$nahiv==0,"No",NULL))
 phirst.hhhiv <- subset(phirst.hhhiv, select=c(hh_id,nahivst,nahiv))
 
 #final master dataset

@@ -85,6 +85,7 @@ phirst.ms$smoke <- if_else(phirst.ms$anysmokenow==1,"Yes",
 #---------------household size
 phirst.ms$hhsize <- phirst.ms$hh_mems_11swabs
 
+
 #---------------household adult HIV status
 phirst.hhhiv <- subset(phirst.ms,select=c(hh_id,age,hiv))
 phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Positive",1L,
@@ -101,6 +102,9 @@ phirst.hhhiv <- subset(phirst.hhhiv, select=c(hh_id,nahivst,nahiv))
 phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke))
 phirst.ms <- merge(phirst.ms,phirst.hhhiv)
 remove(phirst.hhhiv)
+
+#final master dataset
+phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke,nahivst,nahiv))
 
 #---------------baseline demographic characteristics (Table 1)
 phirst.ms %>% tabyl(age, show_na=FALSE) %>% adorn_pct_formatting(digits=1)

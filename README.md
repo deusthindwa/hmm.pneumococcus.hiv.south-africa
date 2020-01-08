@@ -1,1 +1,11 @@
-# markov.chain.model.pneumococcus.hiv.rsa
+# Estimating the contribution of HIV+ adults to household pneumococcal transmission
+
+D Thindwa, A Pinsent, N Wolter, J Ojal, S Tempia, J Kleynhans, A von Gottberg, N French, C Cohen, S Flasche.
+
+Human immunodeficiency virus (HIV)+ adults have persistent higher risk and incidence of invasive pneumococcal disease (IPD) than HIV- adults despite pervasive use of antiretroviral therapy (ART), and infant pneumococcal conjugate vaccine (PCV). To facilitate impact evaluation of potential alternative vaccination strategies against vaccine serotype (VT)-IPD in HIV+ adults, we quantified pneumococcal transmission from HIV+ adults.
+
+We constructed a continuous-time time-inhomogeneous structured hidden Markov model to capture dynamics of pneumococcal carriage acquisition and clearance in South African families, where each individual was followed-up twice weekly for a year, and data on carriage prevalence, HIV status and other covariates were obtainable. We used bound optimization by quadratic approximation method to obtain maximum likelihood estimates and bootstrapped confidence intervals for our model fitted in multistate modelling framework.
+
+Of 1,684 individuals enrolled, 279 (16.6%) were <5 years old children of whom 4 (1.4%) were HIV+, and 216 (93.5%) had received PCV booster-dose at 9 months. HIV prevalence among adults was 17.9%, with majority on ART (82.9%), having high CD4+ cell count (82.2%) and suppressed viral load (75.2%). Carriage acquisition did not notably differ between HIV+ and HIV- children (or adults), although adults acquired lower (Hazard Ratio [HR]:0.71, 95%CI:0.64,0.77) and cleared faster (HR:4.57 95%CI:4.12,5.07) than children. HIV+ adults infected HIV- children (x per day, 95%CI: y-z) more frequent than HIV- adults (x per day, 95%CI: y-z). However, HIV- children were the main source of infections to HIV+ adults (x per day, 95%CI: y-z) and HIV- adults (x per day, 95%CI: y-z). Acquisitions from community (x%) contributed little to overall infection pressure compared to within household (x%).
+
+Impact evaluation of vaccination strategies against VT-IPD in HIV+ adults and onward transmission is crucial to accelerate implementation. HIV+ adults may play a substantial role in pneumococcal transmission, although children are a principal source of infection.

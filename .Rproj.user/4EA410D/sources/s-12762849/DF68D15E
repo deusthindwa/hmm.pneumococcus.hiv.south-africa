@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1578511495627.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "DF68D15E",
+    "lastKnownWriteTime" : 6,
+    "last_content_update" : 1578511495627,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "5A7C9133",
+        "caption" : "phirst.ms",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=phirst.ms&cache_key=5A7C9133",
+        "displayedObservations" : "1684",
+        "environment" : "",
+        "object" : "phirst.ms",
+        "preview" : "0",
+        "totalObservations" : "1684",
+        "variables" : "18"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

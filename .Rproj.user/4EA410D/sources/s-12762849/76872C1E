@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1578313540081.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "76872C1E",
+    "lastKnownWriteTime" : 1578512183,
+    "last_content_update" : 1578512246546,
+    "path" : "~/Rproject/Markov.Model/script/markov.transition.model.R",
+    "project_path" : "script/markov.transition.model.R",
+    "properties" : {
+        "cursorPosition" : "0,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

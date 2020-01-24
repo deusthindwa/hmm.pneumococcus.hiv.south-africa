@@ -4,7 +4,7 @@
 #7/1/2020
 
 #---------------load required packages into memory
-phirst.packages <-c("tidyverse","plyr","msm","timetk","gridExtra","curl","dplyr","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel")
+phirst.packages <-c("tidyverse","plyr","msm","timetk","gridExtra","curl","dplyr","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #---------------load all phirst datasets (household, master and follow-up)
@@ -85,7 +85,6 @@ phirst.ms$smoke <- if_else(phirst.ms$anysmokenow==1,"Yes",
 #---------------household size
 phirst.ms$hhsize <- phirst.ms$hh_mems_11swabs
 
-
 #---------------household adult HIV status
 phirst.hhhiv <- subset(phirst.ms,select=c(hh_id,age,hiv))
 phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Positive",1L,
@@ -102,9 +101,6 @@ phirst.hhhiv <- subset(phirst.hhhiv, select=c(hh_id,nahivst,nahiv))
 phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke))
 phirst.ms <- merge(phirst.ms,phirst.hhhiv)
 remove(phirst.hhhiv)
-
-#final master dataset
-phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke,nahivst,nahiv))
 
 #---------------baseline demographic characteristics (Table 1)
 phirst.ms %>% tabyl(age, show_na=FALSE) %>% adorn_pct_formatting(digits=1)
@@ -151,6 +147,7 @@ phirst.fu$age <- if_else(phirst.fu$age==1,1L,if_else(phirst.fu$age==0,0L,NULL))
 phirst.fu$sex <- recode_factor(phirst.fu$sex,`Male`=1L,`Female`=0L)
 phirst.fu$sex <- if_else(phirst.fu$sex==1,1L,if_else(phirst.fu$sex==0,0L,NULL))
 
+
 phirst.fu$hiv <- recode_factor(phirst.fu$hiv,`Positive`=1L,`Negative`=0L)
 phirst.fu$hiv <- if_else(phirst.fu$hiv==1,1L,if_else(phirst.fu$hiv==0,0L,NULL))
 
@@ -163,8 +160,21 @@ phirst.fu$cd4 <- if_else(phirst.fu$cd4==1,1L,if_else(phirst.fu$cd4==0,0L,NULL))
 phirst.fu$vl <- recode_factor(phirst.fu$vl,`High`=1L,`Low`=0L)
 phirst.fu$vl <- if_else(phirst.fu$vl==1,1L,if_else(phirst.fu$vl==0,0L,NULL))
 
-phirst.fu$nahivst <- recode_factor(phirst.fu$nahivst,`Yes`=1L,`No`=0L)
-phirst.fu$nahivst <- if_else(phirst.fu$nahivst==1,1L,if_else(phirst.fu$nahivst==0,0L,NULL))
+phirst.fu$nahiv1 <- recode_factor(phirst.fu$nahivst,`Yes`=1L,`No`=0L)
+phirst.fu$nahiv1 <- if_else(phirst.fu$nahiv1==1,1L,if_else(phirst.fu$nahiv1==0,0L,NULL))
+phirst.fu$nahivst <- NULL
+
+phirst.fu$nahiv2 <- if_else(phirst.fu$nahiv>1L,1L,
+                            if_else(phirst.fu$nahiv<=1L,0L,NULL))
+
+phirst.fu$nahiv3 <- if_else(phirst.fu$nahiv>2L,1L,
+                            if_else(phirst.fu$nahiv<=2L,0L,NULL))
+
+phirst.fu$nahiv4 <- if_else(phirst.fu$nahiv>3L,1L,
+                            if_else(phirst.fu$nahiv<=3L,0L,NULL))
+
+phirst.fu$nahiv5 <- if_else(phirst.fu$nahiv>4L,1L,
+                            if_else(phirst.fu$nahiv<=4L,0L,NULL))
 
 #===============hidden Markov modelling without transmission assumptions
 
@@ -177,120 +187,215 @@ matrix.Q <- rbind(c(0.0,0.1),
 rownames(matrix.Q) <- c("Clear","Carry")
 colnames(matrix.Q) <- c("Clear","Carry")
 
-#---------------fitting a time-homogeneous model without misclassification
-phirst.fu <- arrange(phirst.fu,ind_id,dys)
-p.model0<-msm(state~dys, subject=ind_id, data=phirst.fu, 
-              qmatrix=matrix.Q, 
-              covariates=~age+hiv+nahivst,
-              opt.method="bobyqa")
-
-printnew.msm(p.model0)
-
-#---------------fitting a time-inhomogeneous model without misclassification
-p.model1<-msm(state~dys, subject=ind_id, data=phirst.fu, 
-              qmatrix=matrix.Q, 
-              covariates=~age+hiv+nahivst,
-              pci=c(100,150,200,225,275),
-              opt.method="bobyqa")
-
-printnew.msm(p.model1)
-
-#---------------Likelihood ratio test
-lrtest.msm(p.model0,p.model1)
-
-#---------------pearson-type goodness of fit
-options(digits=2)
-pearson.msm(p.model0, timegroups=2)
-pearson.msm(p.model1, timegroups=2)
-
-#---------------expected vs observed carriage
-dev.off()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model0, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lwd.exp=2,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
-legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
-
-dev.off()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model1, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lwd.exp=2,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
-legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
-
-#---------------fitting a simpler model without misclassification with covariates seperately
-qmatrix.msm(p.model1, covariates="mean")
-
-qmatrix.msm(p.model1, covariates=list(hiv=0))
-qmatrix.msm(p.model1, covariates=list(hiv=1))
-
-qmatrix.msm(p.model1, covariates=list(age=0))
-qmatrix.msm(p.model1, covariates=list(age=1))
-
-#---------------fitting a model without misclassification with covariates in combination
-qmatrix.msm(p.model1, covariates=list(hiv=1, age=0))
-qmatrix.msm(p.model1, covariates=list(hiv=0, age=0))
-qmatrix.msm(p.model1, covariates=list(hiv=1, age=1))
-qmatrix.msm(p.model1, covariates=list(hiv=0, age=1))
-
 #---------------initiate emission matrix E
 matrix.E <- rbind(c(1.0,0.0), 
                   c(0.1,0.9))
 colnames(matrix.E) <- c("SwabNeg","SwabPos")
 rownames(matrix.E) <- c("Clear","Carry")
 
+#---------------fitting time-homogeneous nested models without/with misclassifications
+phirst.fu <- arrange(phirst.fu,ind_id,dys)
+p.model1<-msm(state~dys, subject=ind_id, data=phirst.fu, 
+              qmatrix=matrix.Q, 
+              covariates=~age+hiv,
+              opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model2<-msm(state~dys, subject=ind_id, data=phirst.fu, 
+              qmatrix=matrix.Q, 
+              covariates=~age+hiv+nahiv1,
+              opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model3<-msm(state~dys, subject=ind_id, data=phirst.fu, 
+              qmatrix=matrix.Q, 
+              covariates=~age+hiv+nahiv1+vl,
+              opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model4<-msm(state~dys, subject=ind_id, data=phirst.fu, 
+              qmatrix=matrix.Q, 
+              covariates=~age+hiv+nahiv1+vl+abx,
+              opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model5 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model6 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+nahiv1,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model7 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+nahiv1+vl,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model8 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+nahiv1+vl+abx,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+#comparing the fitted nested models 
+AIC(p.model1,p.model2,p.model3,p.model5,p.model6,p.model7)
+
+#print out the baseline intensities, and emission probability of selected model
+printnew.msm(p.model7)
+
+#---------------plot the expected vs observed carriage and clearence data of selected model
+dev.off()
+par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
+plot.prevalence.msm(p.model7, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
+
+X<-as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3, ci="normal"))
+Y <- subset(X, select=c(Observed.State.1,Observed.State.2,Expected.estimates.Clear,))
+
+dev.new()
+par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
+prev.mpdel0 <- prevalence.msm(p.model0)
+prevplot(p.model0,prev.obj=prev.mpdel0, M=TRUE,ci=TRUE,devnew=FALSE)
+
+dev.off()
+par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
+plot.prevalence.msm(p.model1, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
+
 #---------------fitting a model with misclassification
+phirst.fu$dyz <- phirst.fu$dys/365.26
+phirst.fu <- arrange(phirst.fu,ind_id,dys)
 p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates= ~age+hiv+nahivst,
+                covariates=~age+hiv+nahiv1,
                 est.initprobs=T,
-                opt.method="bobyqa")
+                opt.method="bobyqa", control=list(maxfun=60000))
 
 printnew.msm(p.model2)
 
-#---------------transition intensity matrix for a model with misclassification with covariates (Table 2)
-qmatrix.msm(p.model2, covariates=list(hiv=1,age=0,nahivst=0), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=1,age=0,nahivst=1), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=0,age=0,nahivst=0), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=0,age=0,nahivst=1), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=1,age=1,nahivst=0), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=1,age=1,nahivst=1), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=0,age=1,nahivst=0), ci="normal", cl=0.95, B=1000, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=0,age=1,nahivst=1), ci="normal", cl=0.95, B=1000, cores=3)
-
-#---------------transition probability matrix for model with misclassification with covariates (Table 3)
-pmatrix.msm(p.model2, covariates=list(hiv=1, age=0),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
-pmatrix.msm(p.model2, covariates=list(hiv=0, age=0),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
-pmatrix.msm(p.model2, covariates=list(hiv=1, age=1),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
-pmatrix.msm(p.model2, covariates=list(hiv=0, age=1),t1=0,t=289,ci="bootstrap",B=5,cl=0.95,cores=3)
-
 #---------------pearson-type goodness of fit
-#options(digits=2)
-#pearson.msm(p.model2, timegroups=2)
+options(digits=2)
+pearson.msm(p.model2, timegroups=2)
 
 #---------------expected vs observed carriage
-#dev.off()
-#par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-#plot.prevalence.msm(p.model2, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2.5,lwd.exp=2.5,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
-#legend(0, 100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
+dev.off()
+par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
+plot.prevalence.msm(p.model2, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2.5,lwd.exp=2.5,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+legend(0, 100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
 
-#---------------average period in a single stay in a state (sojourn)
-sojourn.msm(p.model2)
+#---------------Likelihood ratio test
+lrtest.msm(p.model1,p.model2)
+AIC(p.model1,p.model2)
+BIC(p.model1,p.model2)
 
-#---------------Probability that each state is next
-pnext.msm(p.model2)
+#---------------transition intensity matrix for a misclassification model with covariates
+#acquisition and clearance rates in HIV+ and HIV- children and adults from all HH
+set.seed(1988)
+qmatrix.msm(p.model2, covariates=list(hiv=1,age=0), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=0,age=0), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=1,age=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=0,age=1), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance rates in HIV+ or HIV- children and adults from HH without HIV+ adult(s)
+set.seed(1988)
+qmatrix.msm(p.model2, covariates=list(hiv=1,age=0,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=0,age=0,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=1,age=1,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=0,age=1,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance rates in HIV+ or HIV- children and adults from HH with HIV+ adult(s)
+set.seed(1988)
+qmatrix.msm(p.model2, covariates=list(hiv=1,age=0,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=0,age=0,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=1,age=1,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model2, covariates=list(hiv=0,age=1,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance rates in all children from HH without HIV+ adults
+set.seed(1988)
+qmatrix.msm(p.model2, covariates=list(age=0,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance rates in all children from HH with HIV+ adults
+set.seed(1988)
+qmatrix.msm(p.model2, covariates=list(age=0,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+
+
+#---------------transition probability matrix for model with misclassification with covariates (Table 3)
+#acquisition and clearance probability in HIV+ and HIV- children and adults from all HH
+set.seed(1988)
+pmatrix.msm(p.model2, covariates=list(hiv=1,age=0), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0,age=0), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=1,age=1), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0,age=1), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance probability in HIV+ or HIV- children and adults from HH without HIV+ adult(s)
+set.seed(1988)
+pmatrix.msm(p.model2, covariates=list(hiv=1,age=0,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0,age=0,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=1,age=1,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0,age=1,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance probability in HIV+ or HIV- children and adults from HH with HIV+ adult(s)
+set.seed(1988)
+pmatrix.msm(p.model2, covariates=list(hiv=1,age=0,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0,age=0,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=1,age=1,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+pmatrix.msm(p.model2, covariates=list(hiv=0,age=1,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance probability in all children from HH without HIV+ adult(s)
+set.seed(1988)
+pmatrix.msm(p.model2, covariates=list(age=0,nahiv1=0), ci="normal", cl=0.95, B=10, cores=3)
+
+#acquisition and clearance probability in all children from HH with HIV+ adult(s)
+set.seed(1988)
+pmatrix.msm(p.model2, covariates=list(age=0,nahiv1=1), ci="normal", cl=0.95, B=10, cores=3)
+
+
+#---------------average period in days in a single stay in a state (sojourn times)
+#carriage duration for HIV+ and HIV- children and adults from all HH
+sojourn.msm(p.model2,covariates=list(hiv=1,age=0),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=0,age=0),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=1,age=1),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=0,age=1),ci="normal",cl=0.95,B=10,cores=3)
+
+#carriage duration for HIV+ and HIV- children or adults from HH without HIV+ adult(s)
+sojourn.msm(p.model2,covariates=list(hiv=1,age=0,nahiv1=0),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=0,age=0,nahiv1=0),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=1,age=1,nahiv1=0),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=0,age=1,nahiv1=0),ci="normal",cl=0.95,B=10,cores=3)
+
+#carriage duration for HIV+ and HIV- children or adults from HH with HIV+ adult(s)
+sojourn.msm(p.model2,covariates=list(hiv=1,age=0,nahiv1=1),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=0,age=0,nahiv1=1),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=1,age=1,nahiv1=1),ci="normal",cl=0.95,B=10,cores=3)
+sojourn.msm(p.model2,covariates=list(hiv=0,age=1,nahiv1=1),ci="normal",cl=0.95,B=10,cores=3)
 
 #---------------forecasted total length of time spent in each trasient state
-totlos.msm(p.model2, tot=289)
+totlos.msm(p.model2,fromt=0,tot=289,covariates=list(hiv=1,age=0),ci="normal",B=5,cl=0.95,cores=3)
+totlos.msm(p.model2,fromt=0,tot=289,covariates=list(hiv=0,age=0),ci="normal",B=5,cl=0.95,cores=3)
+totlos.msm(p.model2,fromt=0,tot=120,covariates=list(hiv=1,age=1),ci="normal",B=5,cl=0.95,cores=3)
+totlos.msm(p.model2,fromt=0,tot=289,covariates=list(hiv=0,age=1),ci="normal",B=5,cl=0.95,cores=3)
 
 #---------------expected time until Markov process first enters a carrying state (hitting time)
-efpt.msm(p.model2, tostate=2)
+efpt.msm(p.model2,tostate=2,covariates=list(hiv=1,age=0),ci="normal",B=5,cl=0.95,cores=3)
+efpt.msm(p.model2,tostate=2,covariates=list(hiv=0,age=0),ci="normal",B=5,cl=0.95,cores=3)
+efpt.msm(p.model2,tostate=2,covariates=list(hiv=1,age=0),ci="normal",B=5,cl=0.95,cores=3)
+efpt.msm(p.model2,tostate=2,covariates=list(hiv=0,age=0),ci="normal",B=5,cl=0.95,cores=3)
 
 #---------------expected number of visits to a state
-envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=0),ci="bootstrap",B=5,cl=0.95,cores=3)
-envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=0),ci="bootstrap",B=5,cl=0.95,cores=3)
-envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=1),ci="bootstrap",B=5,cl=0.95,cores=3)
-envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=1),ci="bootstrap",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=0),ci="normal",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=0),ci="normal",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=1, age=1),ci="normal",B=5,cl=0.95,cores=3)
+envisits.msm(p.model2, fromt=0,tot=289,covariates=list(hiv=0, age=1),ci="normal",B=5,cl=0.95,cores=3)
 
 #---------------viterbi algorithm
-phirst.vi <- viterbi.msm(p.model1)
+phirst.vi <- viterbi.msm(p.model2)
 phirst.vi$time <- as.integer(phirst.vi$time)
 phirst.vi$observed <- as.integer(phirst.vi$observed)
 phirst.vi$fitted <- as.integer(phirst.vi$fitted)
@@ -298,58 +403,73 @@ pstate <- as.data.frame(phirst.vi$pstate)
 phirst.vi$probhs1 <- pstate$V1
 phirst.vi$probhs2 <- pstate$V2
 remove(pstate); phirst.vi$pstate <- NULL
+phirst.vi$observed2 <- if_else(phirst.vi$observed==1L,"Clear","Carry")
+phirst.vi$fitted2 <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
 
 dev.off()
-hmm.plot1 <-ggplot(subset(phirst.vi,subject=="A001-001")) +
-  geom_point(aes(time,fitted), color='red') + 
-  scale_y_continuous(breaks=c(1L,2L)) +
+hmm.plot0 <-ggplot(subset(phirst.vi,subject=="A001-001")) +
+  geom_point(aes(time,observed2), color='red', size=2) + 
   theme_bw() +
-  ylab("Fitted states") +
+  ylab("Observed") +
   xlab("") +
-  theme(strip.text.x = element_text(size=11, face="bold", color="black")) +
-  theme(axis.text.x = element_text(face="bold", size=11), axis.text.y = element_text(face="bold", size=10)) 
+  theme(strip.text.x=element_text(size=12, face="bold", color="black")) +
+  theme(axis.text.x=element_text(face="bold", size=12), axis.text.y=element_text(face="bold", size=12),axis.title=element_text(size=14)) 
+
+hmm.plot1 <-ggplot(subset(phirst.vi,subject=="A001-001")) +
+  geom_point(aes(time,fitted2), color='red', size=2) + 
+  theme_bw() +
+  ylab("Fitted (Viterbi)") +
+  xlab("") +
+  theme(strip.text.x = element_text(size=12, face="bold", color="black")) +
+  theme(axis.text.x = element_text(face="bold", size=12), axis.text.y = element_text(face="bold", size=12),axis.title=element_text(size=14)) 
 
 hmm.plot2 <-ggplot(subset(phirst.vi,subject=="A001-001")) +
-  geom_line(aes(time,probhs2), color='blue') +
+  geom_line(aes(time,probhs2), color='blue', size=1.2) +
   theme_bw() +
-  ylab("Probability of hidden state") +
+  ylab("Probability (For/Back)") +
+  scale_y_continuous(labels=percent) +
   xlab("Time (days)") +
-  theme(strip.text.x = element_text(size=11, face="bold", color="black")) +
-  theme(axis.text.x = element_text(face="bold", size=11), axis.text.y = element_text(face="bold", size=10)) 
+  theme(strip.text.x = element_text(size=12, face="bold", color="black")) +
+  theme(axis.text.x = element_text(face="bold", size=12), axis.text.y = element_text(face="bold", size=12),axis.title=element_text(size=14)) 
 
-grid.arrange(grobs=list(hmm.plot1,hmm.plot2),ncol=1,nrow=2)
+grid.arrange(grobs=list(hmm.plot0,hmm.plot1,hmm.plot2),ncol=1,nrow=3)
 
 #---------------plot the transition intensities of a fitted HM model2
-hmm.plot3 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_general_plots.csv"))
+hmm.plot3 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_acq_plots.csv"))
 dev.off()
-ggplot(hmm.plot3, aes(x=Age, y=Intensity*100, color=Age)) + 
-  geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
-  geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
-  facet_grid(.~State, scales="free_y") +
-  ylim(c(0,10)) +
+hmm.plot3$Age = factor(hmm.plot3$Age,levels(hmm.plot3$Age)[c(2,4,1,3)])
+ggplot(hmm.plot3, aes(x=Age, y=Intensity, color=Age)) + 
+  geom_point(size=2.5,position=position_dodge(width=0.3),stat="identity") +
+  geom_errorbar(aes(ymin=Lintensity, ymax=Uintensity), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
+  facet_grid(.~HHIVstatus, scales="free_y") +
+  ylim(c(10,25)) +
   theme_bw() +
-  ylab("Transition per 100 days") +
+  ylab("Acquisition per year") +
   xlab("") +
-  theme(strip.text.x = element_text(size = 11, face="bold", color="black")) +
-  theme(axis.text.x = element_text(face="bold", size=0), axis.text.y = element_text(face="bold", size=10)) + 
+  theme(strip.text.x=element_text(size=12,face="bold",color="black")) +
+  theme(axis.text.x=element_text(face="bold",size=0), axis.text.y=element_text(face="bold",size=12)) + 
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=15)) +
   guides(color=guide_legend(title="")) +
-  theme(legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
+  theme(legend.text=element_text(size=12), legend.title=element_text(face="bold",size=12)) 
 
-#---------------plot the transition probabilities of a fitted HM model2
-hmm.plot4 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_prob_plots.csv"))
+#---------------plot the transition intensities of a fitted HM model2
+hmm.plot4 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/hmm_dur_plots.csv"))
 dev.off()
-ggplot(hmm.plot4, aes(x=Age, y=Intensity*100, color=Age)) + 
-  geom_point(size=2,position=position_dodge(width=0.3),stat="identity") +
-  geom_errorbar(aes(ymin=Lintensity*100, ymax=Uintensity*100), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
-  facet_grid(.~State, scales="free_y") +
+hmm.plot4$Age = factor(hmm.plot4$Age,levels(hmm.plot4$Age)[c(2,4,1,3)])
+ggplot(hmm.plot4, aes(x=Age, y=Intensity, color=Age)) + 
+  geom_point(size=2.5,position=position_dodge(width=0.3),stat="identity") +
+  geom_errorbar(aes(ymin=Lintensity, ymax=Uintensity), width=0.2,size=1,position=position_dodge(width=0.3),stat="identity") +
+  facet_grid(.~HHIVstatus, scales="free_y") +
   ylim(c(0,100)) +
   theme_bw() +
-  ylab("Probability (%)") +
+  ylab("Duration of carriage (days)") +
   xlab("") +
-  theme(strip.text.x = element_text(size = 11, face="bold", color="black")) +
-  theme(axis.text.x = element_text(face="bold", size=0), axis.text.y = element_text(face="bold", size=10)) + 
+  theme(strip.text.x=element_text(size=12,face="bold",color="black")) +
+  theme(axis.text.x=element_text(face="bold",size=0), axis.text.y=element_text(face="bold",size=12)) + 
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=15)) +
   guides(color=guide_legend(title="")) +
-  theme(legend.text = element_text(size = 11), legend.title = element_text(face="bold", size=11)) 
+  theme(legend.text=element_text(size=12), legend.title=element_text(face="bold",size=12)) 
+
 
 #===============hidden Markov modelling with transmission assumptions
 

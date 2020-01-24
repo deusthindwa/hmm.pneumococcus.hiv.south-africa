@@ -1,11 +1,21 @@
-# Estimating the contribution of HIV+ adults to household pneumococcal transmission
+# Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 
-D Thindwa, A Pinsent, N Wolter, J Ojal, S Tempia, J Kleynhans, A von Gottberg, N French, C Cohen, S Flasche.
+D Thindwa[1,2], N Wolter[3,4], A Pinsent[1], Carrim M[3], J Ojal[1,5], J Kleynhans[3,6], A von Gottberg[3,4], N French[2,7], C Cohen[3,6], S Flasche[1].
 
-Human immunodeficiency virus (HIV)+ adults have persistent higher risk and incidence of invasive pneumococcal disease (IPD) than HIV- adults despite pervasive use of antiretroviral therapy (ART), and infant pneumococcal conjugate vaccine (PCV). To facilitate impact evaluation of potential alternative vaccination strategies against vaccine serotype (VT)-IPD in HIV+ adults, we quantified pneumococcal transmission from HIV+ adults.
+1 Centre for the Mathematical Modelling of Infectious Diseases, Department of Infectious Disease Epidemiology, London School of Hygiene and Tropical Medicine, London, UK.
+2 Malawi Liverpool Wellcome Trust Clinical Research Programme, Blantyre, Malawi.
+3 Centre for Respiratory Diseases and Meningitis, National Institute for Communicable Diseases of the National Health Laboratory Service, Johannesburg, South Africa.
+4 School of Pathology, University of the Witwatersrand, Johannesburg, South Africa.
+5 KEMRI-Wellcome Trust Research Programme, Centre for Geographic Medicine, Kenya.
+6 School of Public Health, University of the Witwatersrand, Johannesburg, South Africa.
+7 Institute of Infection and Global Health, Department of Clinical Infection, Microbiology, and Immunology, University of Liverpool, Liverpool, United Kingdom.
 
-We constructed a continuous-time time-inhomogeneous structured hidden Markov model to capture dynamics of pneumococcal carriage acquisition and clearance in South African families, where each individual was followed-up twice weekly for a year, and data on carriage prevalence, HIV status and other covariates were obtainable. We used bound optimization by quadratic approximation method to obtain maximum likelihood estimates and bootstrapped confidence intervals for our model fitted in multistate modelling framework.
+Key words: Pneumococcal transmission, HIV, hidden Markov modelling, South Africa
 
-Of 1,684 individuals enrolled, 279 (16.6%) were <5 years old children of whom 4 (1.4%) were HIV+, and 216 (93.5%) had received PCV booster-dose at 9 months. HIV prevalence among adults was 17.9%, with majority on ART (82.9%), having high CD4+ cell count (82.2%) and suppressed viral load (75.2%). Carriage acquisition did not notably differ between HIV+ and HIV- children (or adults), although adults acquired lower (Hazard Ratio [HR]:0.71, 95%CI:0.64,0.77) and cleared faster (HR:4.57 95%CI:4.12,5.07) than children. HIV+ adults infected HIV- children (x per day, 95%CI: y-z) more frequent than HIV- adults (x per day, 95%CI: y-z). However, HIV- children were the main source of infections to HIV+ adults (x per day, 95%CI: y-z) and HIV- adults (x per day, 95%CI: y-z). Acquisitions from community (x%) contributed little to overall infection pressure compared to within household (x%).
+Human immunodeficiency virus (HIV)-infected adults have higher risk of pneumococcal disease and carriage despite antiretroviral therapy. We estimated if HIV-infected adults disproportionally contribute to pneumococcal transmission in the household.
 
-Impact evaluation of vaccination strategies against VT-IPD in HIV+ adults and onward transmission is crucial to accelerate implementation. HIV+ adults may play a substantial role in pneumococcal transmission, although children are a principal source of infection.
+We constructed a hidden Markov model to capture the dynamics of pneumococcal carriage acquisition and clearance in families, who were followed-up twice weekly for their carriage incidence and tested using lytA real-time PCR. Inclusion of age, HIV status and presence of HIV-infected adult within household allowed estimation of respectively stratified intensities.
+
+Of 1,684 individuals enrolled, 16.6% were <5 years-old children of whom 1.5% were HIV-infected. 17.9% of adults were HIV-infected, with high CD4+ count (82.2%). Preliminary modelling results suggest that 14.5% (95%CI:13.9,15.2) of pneumococcal-negative swabs were false negatives, annual carriage acquisition rates were not elevated in HIV-infected compared to HIV-uninfected children (19.8, 95%CI:19.7,19.9 vs 20.8, 95%CI:20.6,21.5) or adults (14.3 ,95%CI:14.1,15.3 vs 15.1, 95%CI:14.8,15.3), and carriage duration in HIV-infected children (45.66 days, 95%CI:39.08,53.33) or adults (9.86 days, 95%CI:8.77,10.96) was not longer than among HIV-uninfected counterparts (57.71 days, 95%CI:51.87,64.65 and 12.42 days 95%CI:11.69,13.15). Childhood carriage acquisition was also similar in households with (19.6, 95%CI:19.4,21.0) or without (20.8,95%CI:20.6,23.9) HIV-infected adults.
+
+HIV-infected adults are not more likely to transmit than HIV-uninfected adults in the household.

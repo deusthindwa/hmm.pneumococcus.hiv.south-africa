@@ -1,6 +1,6 @@
 # Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 
-D Thindwa1,2, N Wolter3,4 , A Pinsent1, Carrim M3, J Ojal1,5, J Kleynhans3,6, A von Gottberg3,4, N French2,7, C Cohen3,6, S Flasche1.
+D Thindwa[1,2], N Wolter[3,4], A Pinsent[1], Carrim M[3], J Ojal[1,5], J Kleynhans[3,6], A von Gottberg[3,4], N French[2,7], C Cohen[3,6], S Flasche[1].
 
 1 Centre for the Mathematical Modelling of Infectious Diseases, Department of Infectious Disease Epidemiology, London School of Hygiene and Tropical Medicine, London, UK.
 2 Malawi Liverpool Wellcome Trust Clinical Research Programme, Blantyre, Malawi.

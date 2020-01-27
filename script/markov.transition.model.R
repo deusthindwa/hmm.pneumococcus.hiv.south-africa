@@ -1,9 +1,9 @@
 #Written by Deus Thindwa
-#The effect of parental HIV infection status on pneumococcal acquisition and clearance rates in children
-#Continuous-time time-inhomogeneous hidden Markov modelling study, PhD chapter 1.
-#7/1/2020
+#Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
+#Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
+#1/10/2019 - 24/1/2020
 
-#---------------load required packages into memory
+#===============load required packages into memory
 phirst.packages <-c("tidyverse","plyr","msm","timetk","gridExtra","curl","dplyr","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
 lapply(phirst.packages, library, character.only=TRUE)
 
@@ -20,7 +20,8 @@ phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,site,sex,age_at_consen
 phirst.ms <- merge(phirst.ms,phirst.hh)
 rm(phirst.hh)
 
-#---------------prepare dataset for baseline demographic characteristics
+#===============prepare master (ms) dataset for baseline demographic characteristics
+
 #---------------studysite
 phirst.ms$site <- if_else(phirst.ms$site=="Agincourt","Agincourt",
                           if_else(phirst.ms$site=="Klerksdorp","Klerksdorp",NULL))
@@ -39,7 +40,7 @@ phirst.ms$hiv <- if_else(phirst.ms$hiv_status=="Negative","Negative",
 
 #---------------ART status
 phirst.ms$art <- if_else(phirst.ms$arv_current=="Yes","Yes",
-                         if_else(phirst.ms$arv_current=="No","No",NULL))
+                         if_else(phirst.ms$arv_current=="No","No","No"))
 
 #---------------CD4+ cell count
 phirst.ms$cd4 <- if_else(!is.na(phirst.ms$cd4_count_8),phirst.ms$cd4_count_8,
@@ -85,19 +86,16 @@ phirst.ms$smoke <- if_else(phirst.ms$anysmokenow==1,"Yes",
 #---------------household size
 phirst.ms$hhsize <- phirst.ms$hh_mems_11swabs
 
-#---------------household adult HIV status
+#---------------number of HIV+ adults in the household
 phirst.hhhiv <- subset(phirst.ms,select=c(hh_id,age,hiv))
 phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Positive",1L,
                              if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Negative",0L,
                                      if_else(phirst.hhhiv$age=="Child" & phirst.hhhiv$hiv=="Negative",0L,
                                              if_else(phirst.hhhiv$age=="Child" & phirst.hhhiv$hiv=="Positive",0L,NULL))))
 phirst.hhhiv$age <- phirst.hhhiv$hiv <- NULL
-phirst.hhhiv <- setDT(phirst.hhhiv)[,list(nahiv=sum(hhiv)), by=.(hh_id)]
-phirst.hhhiv$nahivst <- if_else(phirst.hhhiv$nahiv>=1,"Yes",
-                                if_else(phirst.hhhiv$nahiv==0,"No",NULL))
-phirst.hhhiv <- subset(phirst.hhhiv, select=c(hh_id,nahivst,nahiv))
+phirst.hhhiv <- setDT(phirst.hhhiv)[,list(ahiv=sum(hhiv)), by=.(hh_id)]
 
-#final master dataset
+#---------------final master dataset
 phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke))
 phirst.ms <- merge(phirst.ms,phirst.hhhiv)
 remove(phirst.hhhiv)
@@ -117,7 +115,9 @@ for(i in colnames(phirst.ms[c(6:17)])){
   print(tabyl(phirst.ms[[i]][phirst.ms$age=="Adult"],show_na=FALSE) %>% adorn_pct_formatting(digits=1))
 };remove(i)
 
-#---------------prepare and merge follow-up to master dataset
+#===============prepare follow-up (fu) dataset for modelling
+
+#---------------merge follow-up to master dataset
 phirst.fu <- subset(phirst.fu, select=c(ind_id,visit_id,visit_date,visit,npspne,npspneload))
 phirst.fu$visit_date <- ymd(phirst.fu$visit_date)
 phirst.fu$startdate <- if_else(phirst.fu$visit==1L,phirst.fu$visit_date,NULL)
@@ -127,16 +127,32 @@ phirst.fu$pndensity <- if_else(phirst.fu$npspneload>=1000,"High",
                                if_else(phirst.fu$npspneload<1000,"Low",NULL))
 phirst.fu <- merge(phirst.fu,phirst.ms)
 
-#---------------final follow-up dataset
-phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,hhsize,dys,npspne,pndensity,age,sex,hiv,art,cd4,vl,nahivst,nahiv))
+#---------------number of PNC+ adults in the household per visit
+phirst.hhpnc <- subset(phirst.fu,select=c(visit_id,age,visit,npspne))
+phirst.hhpnc$hh_id <- substr(phirst.hhpnc$visit_id,0,4)
+phirst.hhpnc$hpnc <- if_else(phirst.hhpnc$age=="Adult" & phirst.hhpnc$npspne==1,1L,
+                             if_else(phirst.hhpnc$age=="Adult" & phirst.hhpnc$npspne==0,0L,
+                                     if_else(phirst.hhpnc$age=="Child" & phirst.hhpnc$npspne==0,0L,
+                                             if_else(phirst.hhpnc$age=="Child" & phirst.hhpnc$npspne==1,0L,NULL))))
+phirst.hhpnc$age <- phirst.hhpnc$npspne <- NULL
+phirst.hhpnc <- arrange(phirst.hhpnc,hh_id,visit_id)
+phirst.hhpnc <- setDT(phirst.hhpnc)[,list(apnc=sum(hpnc)),by=.(hh_id,visit)]
+phirst.fu <- merge(phirst.fu,phirst.hhpnc,by=c("hh_id","visit"))
+remove(phirst.hhpnc)
 
-#---------------prepare follow-up dataset for hidden Markov model fitting
+#---------------gather only required variables in follow-up dataset
+phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,hhsize,dys,npspne,pndensity,age,sex,hiv,art,cd4,vl,ahiv,apnc))
+
+#---------------integerise variable categories for modelling
 phirst.fu$dys <- as.integer(phirst.fu$dys)
 
 phirst.fu <- rename(phirst.fu, c("npspne" = "state"))
 phirst.fu$state <- recode_factor(phirst.fu$state,`1`="Carry",`0`="Clear")
 phirst.fu$state <- recode_factor(phirst.fu$state,`Carry`=2,`Clear`=1)
 phirst.fu$state <- if_else(phirst.fu$state==2,2L,if_else(phirst.fu$state==1,1L,NULL))
+phirst.fu$statem <- phirst.fu$state
+phirst.fu$statem[is.na(phirst.fu$statem)] <- 999L
+phirst.fu$obst <- if_else(phirst.fu$statem==999L,1L,0L)
 
 phirst.fu$pndensity <- recode_factor(phirst.fu$pndensity,`High`=1L,`Low`=0L)
 phirst.fu$pndensity <- if_else(phirst.fu$pndensity==1,1L,if_else(phirst.fu$state==0,0L,NULL))
@@ -146,7 +162,6 @@ phirst.fu$age <- if_else(phirst.fu$age==1,1L,if_else(phirst.fu$age==0,0L,NULL))
 
 phirst.fu$sex <- recode_factor(phirst.fu$sex,`Male`=1L,`Female`=0L)
 phirst.fu$sex <- if_else(phirst.fu$sex==1,1L,if_else(phirst.fu$sex==0,0L,NULL))
-
 
 phirst.fu$hiv <- recode_factor(phirst.fu$hiv,`Positive`=1L,`Negative`=0L)
 phirst.fu$hiv <- if_else(phirst.fu$hiv==1,1L,if_else(phirst.fu$hiv==0,0L,NULL))
@@ -160,25 +175,18 @@ phirst.fu$cd4 <- if_else(phirst.fu$cd4==1,1L,if_else(phirst.fu$cd4==0,0L,NULL))
 phirst.fu$vl <- recode_factor(phirst.fu$vl,`High`=1L,`Low`=0L)
 phirst.fu$vl <- if_else(phirst.fu$vl==1,1L,if_else(phirst.fu$vl==0,0L,NULL))
 
-phirst.fu$nahiv1 <- recode_factor(phirst.fu$nahivst,`Yes`=1L,`No`=0L)
-phirst.fu$nahiv1 <- if_else(phirst.fu$nahiv1==1,1L,if_else(phirst.fu$nahiv1==0,0L,NULL))
-phirst.fu$nahivst <- NULL
+phirst.fu$ahiv <- as.integer(phirst.fu$ahiv)
+phirst.fu$ahivc <- if_else(phirst.fu$ahiv>=1,1L,if_else(phirst.fu$ahiv==0,0L,NULL))
 
-phirst.fu$nahiv2 <- if_else(phirst.fu$nahiv>1L,1L,
-                            if_else(phirst.fu$nahiv<=1L,0L,NULL))
+phirst.fu$apnc <- as.integer(phirst.fu$apnc)
+phirst.fu$apncc <- if_else(phirst.fu$apnc>=1,1L,if_else(phirst.fu$apnc==0,0L,NULL))
 
-phirst.fu$nahiv3 <- if_else(phirst.fu$nahiv>2L,1L,
-                            if_else(phirst.fu$nahiv<=2L,0L,NULL))
+#---------------final variables in follow-up dataset
+phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,dys,state,statem,obst,pndensity,hhsize,age,sex,hiv,art,cd4,vl,ahiv,ahivc,apnc,apncc))
 
-phirst.fu$nahiv4 <- if_else(phirst.fu$nahiv>3L,1L,
-                            if_else(phirst.fu$nahiv<=3L,0L,NULL))
+#===============markov modelling without transmission assumptions within houshold
 
-phirst.fu$nahiv5 <- if_else(phirst.fu$nahiv>4L,1L,
-                            if_else(phirst.fu$nahiv<=4L,0L,NULL))
-
-#===============hidden Markov modelling without transmission assumptions
-
-#---------------show transition frequency in state table
+#---------------show transition frequency
 statetable.msm(state,ind_id,data=phirst.fu)
 
 #---------------initiate transition intensity matrix Q
@@ -193,92 +201,103 @@ matrix.E <- rbind(c(1.0,0.0),
 colnames(matrix.E) <- c("SwabNeg","SwabPos")
 rownames(matrix.E) <- c("Clear","Carry")
 
-#---------------fitting time-homogeneous nested models without/with misclassifications
-phirst.fu <- arrange(phirst.fu,ind_id,dys)
-p.model1<-msm(state~dys, subject=ind_id, data=phirst.fu, 
-              qmatrix=matrix.Q, 
-              covariates=~age+hiv,
-              opt.method="bobyqa", control=list(maxfun=100000))
+#---------------fitting time-homogeneous nested models with misclassifications
+phirst.fu <- arrange(phirst.fu,ind_id)
 
-p.model2<-msm(state~dys, subject=ind_id, data=phirst.fu, 
-              qmatrix=matrix.Q, 
-              covariates=~age+hiv+nahiv1,
-              opt.method="bobyqa", control=list(maxfun=100000))
+p.model1 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model3<-msm(state~dys, subject=ind_id, data=phirst.fu, 
-              qmatrix=matrix.Q, 
-              covariates=~age+hiv+nahiv1+vl,
-              opt.method="bobyqa", control=list(maxfun=100000))
+p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model4<-msm(state~dys, subject=ind_id, data=phirst.fu, 
-              qmatrix=matrix.Q, 
-              covariates=~age+hiv+nahiv1+vl+abx,
-              opt.method="bobyqa", control=list(maxfun=100000))
+p.model3 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc+apncc,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model4 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc+apncc+art,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
 
 p.model5 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv,
+                covariates=~age+hiv+apncc+art,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
 p.model6 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+nahiv1,
+                covariates=~age+hiv+ahivc+art,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
 p.model7 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+nahiv1+vl,
+                covariates=~age+hiv+ahivc+apncc+art+abx,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model8 <- msm(state~dys, subject=ind_id, data=phirst.fu,
-                qmatrix=matrix.Q,
-                ematrix=matrix.E,
-                covariates=~age+hiv+nahiv1+vl+abx,
-                est.initprobs=T,
-                opt.method="bobyqa", control=list(maxfun=100000))
+#---------------comparing the Akaike Information Criterion of the fitted nested models 
+AIC(p.model1,p.model2,p.model3,p.model4,p.model5,p.model6)
 
-#comparing the fitted nested models 
-AIC(p.model1,p.model2,p.model3,p.model5,p.model6,p.model7)
+#print out the baseline intensities, and emission probability of the model with smallest AIC
+printnew.msm(p.model3)
 
-#print out the baseline intensities, and emission probability of selected model
-printnew.msm(p.model7)
+#---------------model convergence
+q.list <- boot.msm(p.model3,B=3,cores=3,stat=function(p.model3){qmatrix.msm(p.model3)$minus2loglik})
 
-#---------------plot the expected vs observed carriage and clearence data of selected model
-dev.off()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model7, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
-legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
+q.DF <- array(unlist(q.list),dim=c(2,2,3))
 
-X<-as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3, ci="normal"))
-Y <- subset(X, select=c(Observed.State.1,Observed.State.2,Expected.estimates.Clear,))
+AICtable <- data.frame(model.iter=rep(NA,10),model.no=rep(NA,10),AIC.value=rep(NA,10))
+model3[i] <- qmatrix.msm(p.model3,ci="bootstrap",cl=0.95,B=3,cores=3)
 
-dev.new()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-prev.mpdel0 <- prevalence.msm(p.model0)
-prevplot(p.model0,prev.obj=prev.mpdel0, M=TRUE,ci=TRUE,devnew=FALSE)
+#---------------plot carriage and clearence prevalence of the model with smallest AIC
+m.prev.data <- as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3, ci="normal"))
+m.prev.perc <- subset(X, select=c(Observed.State.1,Observed.State.2,Expected.estimates.Clear))
 
 dev.off()
 par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model1, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+plot.prevalence.msm(p.model3, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
 legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
 
 #---------------fitting a model with misclassification
 phirst.fu$dyz <- phirst.fu$dys/365.26
-phirst.fu <- arrange(phirst.fu,ind_id,dys)
-p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model2 <- msm(state~dyz, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv+nahiv1,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=60000))
-
-printnew.msm(p.model2)
 
 #---------------pearson-type goodness of fit
 options(digits=2)

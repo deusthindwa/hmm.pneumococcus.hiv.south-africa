@@ -187,11 +187,12 @@ phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,dys,state,statem,o
 #===============markov modelling without transmission assumptions within houshold
 
 #---------------show transition frequency
+phirst.fu <- arrange(phirst.fu,visit_id)
 statetable.msm(state,ind_id,data=phirst.fu)
 
 #---------------initiate transition intensity matrix Q
-matrix.Q <- rbind(c(0.0,0.1),
-                  c(0.1,0.0))
+matrix.Q <- rbind(c(0.0,0.9),
+                  c(0.9,0.0))
 rownames(matrix.Q) <- c("Clear","Carry")
 colnames(matrix.Q) <- c("Clear","Carry")
 
@@ -202,9 +203,9 @@ colnames(matrix.E) <- c("SwabNeg","SwabPos")
 rownames(matrix.E) <- c("Clear","Carry")
 
 #---------------fitting time-homogeneous nested models with misclassifications
-phirst.fu <- arrange(phirst.fu,ind_id)
+phirst.fu <- arrange(phirst.fu,visit_id)
 
-p.model1 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model1 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv,
@@ -213,7 +214,7 @@ p.model1 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model2 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv+ahivc,
@@ -222,7 +223,7 @@ p.model2 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model3 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model3 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv+ahivc+apncc,
@@ -231,16 +232,7 @@ p.model3 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model4 <- msm(state~dys, subject=ind_id, data=phirst.fu,
-                qmatrix=matrix.Q,
-                ematrix=matrix.E,
-                covariates=~age+hiv+ahivc+apncc+art,
-                censor=999,censor.states=c(1,2),
-                obstrue=obst,
-                est.initprobs=T,
-                opt.method="bobyqa", control=list(maxfun=100000))
-
-p.model5 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model4 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv+apncc+art,
@@ -249,7 +241,7 @@ p.model5 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model6 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model5 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv+ahivc+art,
@@ -258,7 +250,43 @@ p.model6 <- msm(state~dys, subject=ind_id, data=phirst.fu,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model7 <- msm(state~dys, subject=ind_id, data=phirst.fu,
+p.model6 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc+apncc+art,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model7 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+apncc+abx,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model8 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc+abx,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model9 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Q,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc+apncc+abx,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+p.model10 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
                 covariates=~age+hiv+ahivc+apncc+art+abx,
@@ -275,11 +303,6 @@ printnew.msm(p.model3)
 
 #---------------model convergence
 q.list <- boot.msm(p.model3,B=3,cores=3,stat=function(p.model3){qmatrix.msm(p.model3)$minus2loglik})
-
-q.DF <- array(unlist(q.list),dim=c(2,2,3))
-
-AICtable <- data.frame(model.iter=rep(NA,10),model.no=rep(NA,10),AIC.value=rep(NA,10))
-model3[i] <- qmatrix.msm(p.model3,ci="bootstrap",cl=0.95,B=3,cores=3)
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
 m.prev.data <- as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3, ci="normal"))

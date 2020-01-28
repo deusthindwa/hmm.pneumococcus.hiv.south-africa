@@ -4,7 +4,7 @@
 #1/10/2019 - 24/1/2020
 
 #===============load required packages into memory
-phirst.packages <-c("tidyverse","plyr","msm","timetk","gridExtra","curl","dplyr","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
+phirst.packages <-c("tidyverse","plyr","msm","timetk","gridExtra","curl","dplyr","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools","foreach")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #---------------load all phirst datasets (household, master and follow-up)
@@ -191,8 +191,8 @@ phirst.fu <- arrange(phirst.fu,visit_id)
 statetable.msm(state,ind_id,data=phirst.fu)
 
 #---------------initiate transition intensity matrix Q
-matrix.Q <- rbind(c(0.0,0.9),
-                  c(0.9,0.0))
+matrix.Q <- rbind(c(0.0,0.1),
+                  c(0.1,0.0))
 rownames(matrix.Q) <- c("Clear","Carry")
 colnames(matrix.Q) <- c("Clear","Carry")
 
@@ -302,7 +302,38 @@ AIC(p.model1,p.model2,p.model3,p.model4,p.model5,p.model6)
 printnew.msm(p.model3)
 
 #---------------model convergence
-q.list <- boot.msm(p.model3,B=3,cores=3,stat=function(p.model3){qmatrix.msm(p.model3)$minus2loglik})
+cores=detectCores()
+cl <- makeCluster(3)
+registerDoParallel(cl)
+
+phirst.fu <- arrange(phirst.fu,visit_id)
+LogLtable <- data.frame(iter.no=rep(NA,3),Q.init=rep(NA,3),LogL.value=rep(NA,3))
+i=0.05
+for (j in 1:20){
+matrix.Qc<- rbind(c(0.0,i),c(i,0.0))
+rownames(matrix.Qc) <- c("Clear","Carry")
+colnames(matrix.Qc) <- c("Clear","Carry")
+
+matrix.Ec <- rbind(c(1.0,0.0),c(0.1,0.9))
+colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
+rownames(matrix.Ec) <- c("Clear","Carry")
+
+p.modelc <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Qc,
+                ematrix=matrix.E,
+                covariates=~age+hiv+ahivc+apncc,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+LogLtable[j,] <- c(j,i,p.modelc$minus2loglik)
+i=i+0.05
+}
+stopCluster(cl)
+plot(LogLtable$Q.init,LogLtable$LogL.value,type='l',xlab="Q matrix inital values",ylab="-2 X Log Likelihood")
+
+
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
 m.prev.data <- as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3, ci="normal"))

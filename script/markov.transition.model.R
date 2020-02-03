@@ -7,7 +7,6 @@
 phirst.packages <-c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
 lapply(phirst.packages, library, character.only=TRUE)
 
-
 #---------------load all phirst datasets (household, master and follow-up)
 phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_household.dta",generate.factors=T)
 phirst.ms <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_master.dta",generate.factors=T)

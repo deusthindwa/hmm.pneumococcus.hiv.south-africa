@@ -4,8 +4,9 @@
 #1/10/2019 - 24/1/2020
 
 #===============load required packages into memory
-phirst.packages <-c("tidyverse","plyr","msm","timetk","gridExtra","curl","dplyr","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
+phirst.packages <-c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
 lapply(phirst.packages, library, character.only=TRUE)
+
 
 #---------------load all phirst datasets (household, master and follow-up)
 phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_household.dta",generate.factors=T)
@@ -301,11 +302,87 @@ AIC(p.model1,p.model2,p.model3,p.model4,p.model5,p.model6)
 #print out the baseline intensities, and emission probability of the model with smallest AIC
 printnew.msm(p.model3)
 
-#---------------model convergence
-q.list <- boot.msm(p.model3,B=3,cores=3,stat=function(p.model3){qmatrix.msm(p.model3)$minus2loglik})
+#---------------convergence of best selected model
+LogLikDS <- data.frame(iter.no=rep(NA,50),Q.inits=rep(NA,50),loglikv=rep(NA,50))
+phirst.fu <- arrange(phirst.fu,visit_id)
+j=0.05
+for(i in 1:50){
+
+matrix.Qc <- rbind(c(0.0,j), c(j,0.0))
+rownames(matrix.Qc) <- c("Clear","Carry")
+colnames(matrix.Qc) <- c("Clear","Carry")
+
+matrix.Ec <- rbind(c(1.0,0.0), c(0.1,0.9))
+colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
+rownames(matrix.Ec) <- c("Clear","Carry")
+
+p.modelc <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                qmatrix=matrix.Qc,
+                ematrix=matrix.Ec,
+                covariates=~age+hiv+ahivc+apncc,
+                censor=999,censor.states=c(1,2),
+                obstrue=obst,
+                est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+LogLikDS[i,] <- c(i,j, p.modelc$minus2loglik)
+  j=j+0.05
+}
+
+A<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv),color="blue", size=1.5) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="A", x="",y="-2 X Log-Likelihood") + ylim(65000,68500) + theme_bw() 
+
+B<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="B", x="",y="") + ylim(65000,68500) + theme_bw() 
+
+C<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="C", x="",y="") + ylim(65000,68500) + theme_bw() 
+
+D<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="D", x="",y="") + ylim(65000,68500) + theme_bw() 
+
+E<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="E", x="",y="") + ylim(65000,68500) + theme_bw() 
+
+F<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="F", x="Initial intensity",y="-2 X Log-Likelihood") + ylim(65000,68500) + theme_bw() 
+
+G<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="G", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+
+H<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="H", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+
+I<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="I", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+
+J<-ggplot(LogLikDS) + 
+  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
+  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
+  labs(title="J", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+
+grid.arrange(A,B,C,D,E,F,G,H,I,J,nrow=)
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
-m.prev.data <- as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3, ci="normal"))
+m.prev.data <- as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3))
 m.prev.perc <- subset(X, select=c(Observed.State.1,Observed.State.2,Expected.estimates.Clear))
 
 dev.off()

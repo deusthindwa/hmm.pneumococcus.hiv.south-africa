@@ -4,7 +4,7 @@
 #1/10/2019 - 24/1/2020
 
 #===============load required packages into memory
-phirst.packages <-c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools")
+phirst.packages <-c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools","nlme")
 lapply(phirst.packages, library, character.only=TRUE)
 
 
@@ -182,8 +182,11 @@ phirst.fu$ahivc <- if_else(phirst.fu$ahiv>=1,1L,if_else(phirst.fu$ahiv==0,0L,NUL
 phirst.fu$apnc <- as.integer(phirst.fu$apnc)
 phirst.fu$apncc <- if_else(phirst.fu$apnc>=1,1L,if_else(phirst.fu$apnc==0,0L,NULL))
 
+phirst.fu$abx <- phirst.fu$cd4
+phirst.fu$abx[is.na(phirst.fu$abx)] <- 0L
+
 #---------------final variables in follow-up dataset
-phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,dys,state,statem,obst,pndensity,hhsize,age,sex,hiv,art,cd4,vl,ahiv,ahivc,apnc,apncc))
+phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,dys,state,statem,obst,pndensity,hhsize,age,sex,hiv,art,cd4,vl,ahiv,ahivc,apnc,apncc,abx))
 
 #===============markov modelling without transmission assumptions within houshold
 
@@ -203,13 +206,13 @@ matrix.E <- rbind(c(1.0,0.0),
 colnames(matrix.E) <- c("SwabNeg","SwabPos")
 rownames(matrix.E) <- c("Clear","Carry")
 
-#---------------fitting time-homogeneous nested models with misclassifications
+#---------------fitting time-homogeneous HM nested models with misclassifications
 phirst.fu <- arrange(phirst.fu,visit_id)
 
 p.model1 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv,
+                covariates=~age+hiv+apncc,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -218,7 +221,7 @@ p.model1 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model2 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+ahivc,
+                covariates=~age+hiv+apncc+ahivc,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -227,7 +230,7 @@ p.model2 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model3 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+ahivc+apncc,
+                covariates=~age+hiv+apncc+art,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -236,7 +239,7 @@ p.model3 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model4 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+apncc+art,
+                covariates=~age+hiv+apncc+abx,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -245,7 +248,7 @@ p.model4 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model5 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+ahivc+art,
+                covariates=~age+hiv+apncc+ahivc+art,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -254,7 +257,7 @@ p.model5 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model6 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+ahivc+apncc+art,
+                covariates=~age+hiv+apncc+ahivc+abx,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -263,7 +266,7 @@ p.model6 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model7 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+apncc+abx,
+                covariates=~age+hiv+apncc+art+abx,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
@@ -272,147 +275,181 @@ p.model7 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 p.model8 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                 qmatrix=matrix.Q,
                 ematrix=matrix.E,
-                covariates=~age+hiv+ahivc+abx,
+                covariates=~age+hiv+apncc+ahivc+art+abx,
                 censor=999,censor.states=c(1,2),
                 obstrue=obst,
                 est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-p.model9 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
-                qmatrix=matrix.Q,
-                ematrix=matrix.E,
-                covariates=~age+hiv+ahivc+apncc+abx,
-                censor=999,censor.states=c(1,2),
-                obstrue=obst,
-                est.initprobs=T,
-                opt.method="bobyqa", control=list(maxfun=100000))
-
-p.model10 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
-                 qmatrix=matrix.Q,
-                 ematrix=matrix.E,
-                 covariates=~age+hiv+ahivc+apncc+art+abx,
-                 censor=999,censor.states=c(1,2),
-                 obstrue=obst,
-                 est.initprobs=T,
-                 opt.method="bobyqa", control=list(maxfun=100000))
-
-#---------------comparing the Akaike Information Criterion of the fitted nested models 
-AIC(p.model1,p.model2,p.model3,p.model4,p.model5,p.model6)
+#---------------comparing the AIC and BIC of the fitted nested models 
+AIC(p.model1,p.model2,p.model3,p.model4,p.model5,p.model6,p.model7,p.model8)
+BICx=AIC(p.model8,k=log(length(phirst.fu)))
 
 #print out the baseline intensities, and emission probability of the model with smallest AIC
-printnew.msm(p.model3)
+printnew.msm(p.model6)
 
-#---------------convergence of best selected model
-LogLikDS <- data.frame(iter.no=rep(NA,50),Q.inits=rep(NA,50),loglikv=rep(NA,50))
+#---------------convergence of each model model above
+LogLikDS <- data.frame(iter.no=rep(NA,20),Carry.init=rep(NA,20),Clear.init=rep(NA,20),logL1=rep(NA,20),logL2=rep(NA,20),
+                       logL3=rep(NA,20),logL4=rep(NA,20),logL5=rep(NA,20),logL6=rep(NA,20),logL7=rep(NA,20),logL8=rep(NA,20))
 phirst.fu <- arrange(phirst.fu,visit_id)
 j=0.05
-for(i in 1:50){
-  
-  matrix.Qc <- rbind(c(0.0,j), c(j,0.0))
+k=2.00
+for(i in 1:20){
+  matrix.Qc <- rbind(c(0.0,j), c(k,0.0))
   rownames(matrix.Qc) <- c("Clear","Carry")
   colnames(matrix.Qc) <- c("Clear","Carry")
   
-  matrix.Ec <- rbind(c(1.0,0.0), c(0.1,0.9))
+  matrix.Ec <- rbind(c(1.0,0.0), c(0.15,0.85))
   colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
   rownames(matrix.Ec) <- c("Clear","Carry")
   
-  p.modelc <- msm(statem~dys, subject=ind_id, data=phirst.fu,
-                  qmatrix=matrix.Qc,
-                  ematrix=matrix.Ec,
-                  covariates=~age+hiv+ahivc+apncc,
-                  censor=999,censor.states=c(1,2),
-                  obstrue=obst,
-                  est.initprobs=T,
+m.converge1 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge2 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+ahivc,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge3 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+art,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge4 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+abx,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge5 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+ahivc+art,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge6 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+ahivc+abx,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge7 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+art+abx,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                  opt.method="bobyqa", control=list(maxfun=100000))
+
+m.converge8 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                  qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                  covariates=~age+hiv+apncc+ahivc+art+abx,
+                  censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                   opt.method="bobyqa", control=list(maxfun=100000))
   
-  LogLikDS[i,] <- c(i,j, p.modelc$minus2loglik)
+LogLikDS[i,] <- c(i,j,k,m.converge1$minus2loglik,m.converge2$minus2loglik,m.converge3$minus2loglik,m.converge4$minus2loglik,
+                  m.converge5$minus2loglik,m.converge6$minus2loglik,m.converge7$minus2loglik,m.converge8$minus2loglik)
   j=j+0.05
+  k=k-0.10
 }
 
-A<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv),color="blue", size=1.5) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="A", x="",y="-2 X Log-Likelihood") + ylim(65000,68500) + theme_bw() 
+A <- ggplot(LogLikDS, aes(iter.no,logL1)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 71700.79\nBIC: 71710.75") +
+  labs(title="A", x="",y="-2Log-likelihood") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() 
 
-B<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="B", x="",y="") + ylim(65000,68500) + theme_bw() 
+B <- ggplot(LogLikDS, aes(iter.no,logL2)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 65313.79\nBIC: 65325.74") +
+  labs(title="B", x="",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
-C<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="C", x="",y="") + ylim(65000,68500) + theme_bw() 
+C <- ggplot(LogLikDS, aes(iter.no,logL3)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 71704.35\nBIC: 71716.30") +
+  labs(title="C", x="",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
-D<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="D", x="",y="") + ylim(65000,68500) + theme_bw() 
+D <- ggplot(LogLikDS, aes(iter.no,logL4)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 71681.24\nBIC: 71693.19") +
+  labs(title="D", x="",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
-E<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="E", x="",y="") + ylim(65000,68500) + theme_bw() 
+E <- ggplot(LogLikDS, aes(iter.no,logL5)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 65317.76\nBIC: 65331.70") +
+  labs(title="E", x="Iteration",y="-2Log-likelihood") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw()
 
-F<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="F", x="Initial intensity",y="-2 X Log-Likelihood") + ylim(65000,68500) + theme_bw() 
+F <- ggplot(LogLikDS, aes(iter.no,logL6)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=2,label="AIC: 65293.01\nBIC: 65306.96") +
+  labs(title="F", x="Iteration",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
-G<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="G", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+G <- ggplot(LogLikDS, aes(iter.no,logL7)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 71683.26\nBIC: 71697.20") +
+  labs(title="G", x="Iteration",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
-H<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="H", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+H <- ggplot(LogLikDS, aes(iter.no,logL8)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
+  labs(title="H", x="Iteration",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
-I<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="I", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
+grid.arrange(A,B,C,D,E,F,G,H,nrow=2)
 
-J<-ggplot(LogLikDS) + 
-  geom_point(aes(Q.inits,loglikv), color="blue", size=1.2) + 
-  geom_hline(yintercept=65289.79, linetype="solid", color="red") + 
-  labs(title="J", x="Initial intensity",y="") + ylim(65000,68500) + theme_bw() 
-
-grid.arrange(A,B,C,D,E,F,G,H,I,J,nrow=)
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
-m.prev.data <- as.data.frame(prevalence.msm(times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280), p.model3))
-m.prev.perc <- subset(X, select=c(Observed.State.1,Observed.State.2,Expected.estimates.Clear))
+m.GoF <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+             qmatrix=matrix.Qc,
+             covariates=~age+hiv+apncc+ahivc+abx,
+             censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+             opt.method="bobyqa", control=list(maxfun=100000))
+m.GoFDS <- prevalence.msm(m.GoF,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95)
 
 dev.off()
 par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model3, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+plot.prevalence.msm(m.GoF, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
 legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
-
-#---------------fitting a model with misclassification
-phirst.fu$dyz <- phirst.fu$dys/365.26
-p.model2 <- msm(state~dyz, subject=ind_id, data=phirst.fu,
-                qmatrix=matrix.Q,
-                ematrix=matrix.E,
-                covariates=~age+hiv+nahiv1,
-                est.initprobs=T,
-                opt.method="bobyqa", control=list(maxfun=60000))
-
-#---------------pearson-type goodness of fit
-options(digits=2)
-pearson.msm(p.model2, timegroups=2)
-
-#---------------expected vs observed carriage
-dev.off()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(p.model2, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2.5,lwd.exp=2.5,cex=0.7,xlab="Time (days)",ylab="% Prevalence")
-legend(0, 100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:3, cex=1, lwd=3)
-
-#---------------Likelihood ratio test
-lrtest.msm(p.model1,p.model2)
-AIC(p.model1,p.model2)
-BIC(p.model1,p.model2)
 
 #---------------transition intensity matrix for a misclassification model with covariates
 #acquisition and clearance rates in HIV+ and HIV- children and adults from all HH

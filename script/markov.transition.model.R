@@ -555,16 +555,22 @@ k=k-0.4
 }
 
 m.converge6 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/m.converge.csv"))
-m.converge6$chain <- as.factor(m.converge6$chain)
 dev.off()
+m.converge6$chainx <- if_else(m.converge6$chain==1,"1 (q12=0.05, q21=2.00)",
+                              if_else(m.converge6$chain==2,"1 (q12=0.05, q21=2.00)",
+                                      if_else(m.converge6$chain==3,"1 (q12=0.05, q21=2.00)",
+                                              if_else(m.converge6$chain=="1","1 (q12=0.05, q21=2.00)","1 (q12=0.05, q21=2.00)")
 ggplot(m.converge6, aes(iter,Lik2,color=chain)) + 
   geom_line(size=0.8) +
-  geom_text(x=4000,y=150000,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
-  labs(title="H", x="Iteration",y="",position=position_dodge(width=0)) + 
-  #xlim(0,20) + 
+  #geom_text(x=400,y=150000,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
+  labs(title="A", x="Iteration",y="",position=position_dodge(width=0)) + 
+  xlim(0,1000) + 
   ylim(60000,175000) + 
   theme_bw() +
-  theme(legend.position=c(0.8,0.4))
+  theme(legend.position=c(0.8,0.4)) + 
+  guides(color=guide_legend(title="Chain (initial intensities)")) +
+  theme(legend.key.height=unit(0.8,"line")) + 
+  theme(legend.key.width=unit(1,"line")) 
 
 remove(m.converge6)
 

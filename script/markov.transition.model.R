@@ -553,8 +553,9 @@ sink()
 j=j+0.1
 k=k-0.4
 }
-remove(m.converge6)
 
+m.converge6 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/m.converge.csv"))
+dev.off()
 ggplot(LogLikDS, aes(iter.no,logL8)) + 
   geom_point(color="blue",size=1,shape=5) + 
   geom_line(color="blue", size=0.4) +
@@ -564,6 +565,8 @@ ggplot(LogLikDS, aes(iter.no,logL8)) +
   ylim(65000,74000) + 
   theme_bw() +
   theme(axis.text.y=element_blank())
+
+remove(m.converge6)
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
 m.OE <- msm(statem~dys, subject=ind_id, data=phirst.fu,

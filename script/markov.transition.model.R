@@ -555,16 +555,16 @@ k=k-0.4
 }
 
 m.converge6 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/m.converge.csv"))
+m.converge6$chain <- as.factor(m.converge6$chain)
 dev.off()
-ggplot(LogLikDS, aes(iter.no,logL8)) + 
-  geom_point(color="blue",size=1,shape=5) + 
-  geom_line(color="blue", size=0.4) +
-  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
-  labs(title="H", x="Iteration",y="") + 
-  xlim(0,20) + 
-  ylim(65000,74000) + 
+ggplot(m.converge6, aes(iter,Lik2,color=chain)) + 
+  geom_line(size=0.8) +
+  geom_text(x=4000,y=150000,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
+  labs(title="H", x="Iteration",y="",position=position_dodge(width=0)) + 
+  #xlim(0,20) + 
+  ylim(60000,175000) + 
   theme_bw() +
-  theme(axis.text.y=element_blank())
+  theme(legend.position=c(0.8,0.4))
 
 remove(m.converge6)
 

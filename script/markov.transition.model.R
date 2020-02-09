@@ -21,6 +21,7 @@ phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,site,sex,age_at_consen
 phirst.ms <- merge(phirst.ms,phirst.hh)
 rm(phirst.hh)
 
+
 #===============prepare master (ms) dataset for baseline demographic characteristics
 
 #---------------studysite
@@ -116,6 +117,7 @@ for(i in colnames(phirst.ms[c(6:17)])){
   print(tabyl(phirst.ms[[i]][phirst.ms$age=="Adult"],show_na=FALSE) %>% adorn_pct_formatting(digits=1))
 };remove(i)
 
+
 #===============prepare follow-up (fu) dataset for modelling
 
 #---------------merge follow-up to master dataset
@@ -142,7 +144,7 @@ phirst.fu <- merge(phirst.fu,phirst.hhpnc,by=c("hh_id","visit"))
 remove(phirst.hhpnc)
 
 #---------------gather only required variables in follow-up dataset
-phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,hhsize,dys,npspne,pndensity,age,sex,hiv,art,cd4,vl,ahiv,apnc))
+phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,hhsize,dys,npspne,npspneload,pndensity,age,sex,hiv,art,cd4,vl,ahiv,apnc))
 
 #---------------integerise variable categories for modelling
 phirst.fu$dys <- as.integer(phirst.fu$dys)
@@ -186,7 +188,97 @@ phirst.fu$abx <- phirst.fu$cd4
 phirst.fu$abx[is.na(phirst.fu$abx)] <- 0L
 
 #---------------final variables in follow-up dataset
-phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,dys,state,statem,obst,pndensity,hhsize,age,sex,hiv,art,cd4,vl,ahiv,ahivc,apnc,apncc,abx))
+phirst.fu <- subset(phirst.fu, select=c(hh_id,ind_id,visit_id,dys,state,statem,obst,npspneload,pndensity,hhsize,age,sex,hiv,art,cd4,vl,ahiv,ahivc,apnc,apncc,abx))
+
+
+#===============descriptive data analysis
+
+#---------------show swabbing visit vs frequency of carriage
+phirst.fu <- arrange(phirst.fu,visit_id)
+phirst.d1 <- subset(phirst.fu,select=c(visit_id,state,age,hiv))
+phirst.d1$visit_id <- as.integer(substr(phirst.d1$visit_id,10,12))
+phirst.d1$state <- if_else(phirst.d1$state==2L,1L,0L)
+phirst.d1 <- subset(phirst.d1, state==1)
+phirst.d1 <- phirst.d1 %>% group_by(visit_id,age,hiv) %>% tally()
+phirst.d1$d1group <- if_else(phirst.d1$age==0L & phirst.d1$hiv==0L,"HIV- child",
+                             if_else(phirst.d1$age==0L & phirst.d1$hiv==1L,"HIV+ child",
+                                     if_else(phirst.d1$age==1L & phirst.d1$hiv==0L,"HIV- adult",
+                                             if_else(phirst.d1$age==1L & phirst.d1$hiv==1L,"HIV+ adult",NULL))))
+
+A<-ggplot(subset(phirst.d1, !is.na(d1group)),aes(visit_id,n,color=d1group,position_dodge(height=1))) + 
+  geom_point(size=1.2,na.rm=TRUE) + 
+  labs(title="A", x="Sampling visit",y="Carriage frequency") + 
+  ylim(1,400) + 
+  theme(legend.position="none") + 
+  theme_bw() + 
+  theme(legend.position="none")
+
+#---------------show number of carriage episodes per person vs frequency of carriage
+phirst.fu <- arrange(phirst.fu,visit_id)
+phirst.d2 <- subset(phirst.fu,select=c(ind_id,state,age,hiv))
+phirst.d2$state <- if_else(phirst.d2$state==2L,1L,0L)
+phirst.d2 <- subset(phirst.d2, state==1)
+phirst.d2 <- phirst.d2 %>% group_by(ind_id,age,hiv) %>% tally()
+phirst.d2$episode <- 1
+phirst.d2 <- phirst.d2 %>% group_by(n,age,hiv) %>% tally()
+phirst.d2$d2group <- if_else(phirst.d2$age==0L & phirst.d2$hiv==0L,"HIV- child",
+                             if_else(phirst.d2$age==0L & phirst.d2$hiv==1L,"HIV+ child",
+                                     if_else(phirst.d2$age==1L & phirst.d2$hiv==0L,"HIV- adult",
+                                             if_else(phirst.d2$age==1L & phirst.d2$hiv==1L,"HIV+ adult",NULL))))
+
+B<-ggplot(subset(phirst.d2, !is.na(d2group)),aes(n,nn,color=d2group)) + 
+  geom_line(size=0.8,na.rm=TRUE) + 
+  labs(title="B", x="Episodes per person",y="Carriage frequency") + 
+  ylim(1,60) + xlim(0,80) + 
+  theme(legend.position=c(50,80)) + 
+  theme_bw() + 
+  theme(legend.position=c(0.7,0.6),legend.title=element_blank()) 
+
+
+#---------------show household size vs frequency of carriage
+phirst.fu <- arrange(phirst.fu,visit_id)
+phirst.d4 <- subset(phirst.fu,select=c(hhsize,state,age,hiv))
+phirst.d4$hhsize <- as.integer(phirst.d4$hhsize)
+phirst.d4$hhsize <- if_else(phirst.d4$hhsize<=5,"<5 members",
+                            if_else(phirst.d4$hhsize>=6 & phirst.d4$hhsize<=10,"6-10 members","10+ members"))
+phirst.d4$state <- if_else(phirst.d4$state==2L,1L,0L)
+phirst.d4 <- subset(phirst.d4, state==1)
+phirst.d4 <- phirst.d4 %>% group_by(hhsize,age,hiv) %>% tally()
+phirst.d4$d4group <- if_else(phirst.d4$age==0L & phirst.d4$hiv==0L,"HIV- child",
+                             if_else(phirst.d4$age==0L & phirst.d4$hiv==1L,"HIV+ child",
+                                     if_else(phirst.d4$age==1L & phirst.d4$hiv==0L,"HIV- adult",
+                                             if_else(phirst.d4$age==1L & phirst.d4$hiv==1L,"HIV+ adult",NULL))))
+
+C<-ggplot(subset(phirst.d4,!is.na(d4group))) + 
+  geom_bar(aes(factor(hhsize,levels(factor(hhsize))[c(1,3,2)]),n,fill=d4group),stat="identity",color="gray50",position=position_dodge(0.9)) + 
+  labs(title="C", x="Household size",y="Carriage frequency") + 
+  ylim(0,11500) + 
+  theme_bw() +
+  theme(legend.position="none",legend.title=element_blank()) 
+
+#---------------show sampling visit vs carriage density
+phirst.fu <- arrange(phirst.fu,visit_id)
+phirst.d3 <- subset(phirst.fu,select=c(visit_id,npspneload,age,hiv))
+phirst.d3$visit_id <- as.integer(substr(phirst.d3$visit_id,10,12))
+phirst.d3 <- subset(phirst.d3, !is.na(npspneload))
+phirst.d3$npspneload <- as.integer(phirst.d3$npspneload)
+phirst.d3 <- phirst.d3 %>% group_by(visit_id,age,hiv) %>% summarise_all(mean)
+phirst.d3$d3group <- if_else(phirst.d3$age==0L & phirst.d3$hiv==0L,"HIV- child",
+                             if_else(phirst.d3$age==0L & phirst.d3$hiv==1L,"HIV+ child",
+                                     if_else(phirst.d3$age==1L & phirst.d3$hiv==0L,"HIV- adult",
+                                             if_else(phirst.d3$age==1L & phirst.d3$hiv==1L,"HIV+ adult",NULL))))
+
+D<-ggplot(subset(phirst.d3, !is.na(d3group))) + 
+  geom_point(aes(visit_id,log10(npspneload),color=d3group),stat="identity") +
+  labs(title="D",x="Sampling visit",y="Mean carriage density\n(log10 CFU/ml)") + 
+  ylim(0,10) + 
+  theme(legend.position=c(50,80)) + 
+  theme_bw() + 
+  theme(legend.position="none",legend.title=element_blank())
+
+grid.arrange(A,B,C,D,nrow=2)
+remove(A,B,C,D,phirst.d1,phirst.d2,phirst.d3,phirst.d4)
+
 
 #===============markov modelling without transmission assumptions within houshold
 
@@ -283,7 +375,7 @@ p.model8 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
 
 #---------------comparing the AIC and BIC of the fitted nested models 
 AIC(p.model1,p.model2,p.model3,p.model4,p.model5,p.model6,p.model7,p.model8)
-BICx=AIC(p.model8,k=log(length(phirst.fu)))
+AIC(p.model1,k=log(length(phirst.fu)))
 
 #print out the baseline intensities, and emission probability of the model with smallest AIC
 printnew.msm(p.model6)
@@ -436,19 +528,79 @@ H <- ggplot(LogLikDS, aes(iter.no,logL8)) +
   theme(axis.text.y=element_blank())
 
 grid.arrange(A,B,C,D,E,F,G,H,nrow=2)
+remove(A,B,C,D,E,F,G,H,i,j,k,m.converge1,m.converge2,m.converge3,m.converge4,m.converge5,m.converge6,m.converge7,m.converge8)
 
+#---------------further convergence of the selected model
+phirst.fu <- arrange(phirst.fu,visit_id)
+j=0.05
+k=2.00
+for(i in 1:5){
+  matrix.Qc <- rbind(c(0.0,j), c(k,0.0))
+  rownames(matrix.Qc) <- c("Clear","Carry")
+  colnames(matrix.Qc) <- c("Clear","Carry")
+  
+  matrix.Ec <- rbind(c(1.0,0.0), c(0.15,0.85))
+  colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
+  rownames(matrix.Ec) <- c("Clear","Carry")
+
+sink("m.converge6.txt", append=TRUE)
+m.converge6 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+                   qmatrix=matrix.Qc, ematrix=matrix.Ec,
+                   covariates=~age+hiv+apncc+ahivc+abx,
+                   censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                   control=list(maxit=100000,trace=1,REPORT=1))
+sink()
+j=j+0.1
+k=k-0.4
+}
+remove(m.converge6)
+
+ggplot(LogLikDS, aes(iter.no,logL8)) + 
+  geom_point(color="blue",size=1,shape=5) + 
+  geom_line(color="blue", size=0.4) +
+  geom_text(x=3,y=73500,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
+  labs(title="H", x="Iteration",y="") + 
+  xlim(0,20) + 
+  ylim(65000,74000) + 
+  theme_bw() +
+  theme(axis.text.y=element_blank())
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
-m.GoF <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+m.OE <- msm(statem~dys, subject=ind_id, data=phirst.fu,
              qmatrix=matrix.Qc,
              covariates=~age+hiv+apncc+ahivc+abx,
-             censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+             censor=999, censor.states=c(1,2), est.initprobs=T,
              opt.method="bobyqa", control=list(maxfun=100000))
-m.GoFDS <- prevalence.msm(m.GoF,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95)
+m.OE <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95),preserve_index=TRUE,rename_index="Time")
+m.OEchild1 <- tk_tbl(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=0,hiv=0)),preserve_index=TRUE,rename_index="Time")
+m.OEchild2 <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=0,hiv=1)),preserve_index=TRUE,rename_index="Time")
+m.OEadult1 <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=1,hiv=0)),preserve_index=TRUE,rename_index="Time")
+m.OEadult2 <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=1,hiv=1)),preserve_index=TRUE,rename_index="Time")
+
+A <- ggplot(m.OEchild1,aes(Time)) + 
+  geom_point(aes(Time,Observed.percentages.State.1),color="blue",size=1,shape=5) +
+  geom_line(aes(Time,Expected.percentages.estimates.Clear),color="blue",size=0.4) +
+  geom_ribbon(aes(ymin=Expected.percentages.ci.1.2.5.,ymax=Expected.percentages.ci.1.97.5.),alpha=0.3) +
+  labs(title="A", x="Days",y="Prevalence (%)") + 
+  ylim(0,100) + 
+  xlim(0,300) +
+  theme_bw()
+  
+
+B <- ggplot(m.OEchild1,aes(Time)) + 
+  geom_point(aes(Time,Observed.percentages.State.2),color="blue",size=1,shape=5) +
+  geom_line(aes(Time,Expected.percentages.estimates.Carry),color="blue",size=0.4) +
+  geom_ribbon(aes(ymin=Expected.percentages.ci.2.2.5.,ymax=Expected.percentages.ci.2.97.5.),alpha=0.3) +
+  ylim(0,100) + 
+  xlim(0,300) +
+
+
+
+grid.arrange(A,B,ncol=2)
 
 dev.off()
 par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-plot.prevalence.msm(m.GoF, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence")
+prevalence.msm(m.OE, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence",plot=TRUE)
 legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
 
 #---------------transition intensity matrix for a misclassification model with covariates

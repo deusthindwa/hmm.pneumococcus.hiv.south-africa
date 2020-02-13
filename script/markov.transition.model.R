@@ -4,9 +4,10 @@
 #1/10/2019 - 24/1/2020
 
 #===============load required packages into memory
-phirst.packages <-c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa","lubridate","magrittr","data.table","parallel","foreign","readstata13","wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools","nlme")
+phirst.packages <- c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa",
+                    "lubridate","magrittr","data.table","parallel","foreign","readstata13",
+                    "wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools","nlme")
 lapply(phirst.packages, library, character.only=TRUE)
-
 
 #---------------load all phirst datasets (household, master and follow-up)
 phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_household.dta",generate.factors=T)
@@ -17,9 +18,11 @@ phirst.fu <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_follow-up.dta"
 phirst.hh <- subset(phirst.hh, is.na(reason_hh_not_inc))
 phirst.hh <- subset(phirst.hh, select=c(hh_id,hh_mems_11swabs))
 phirst.ms <- subset(phirst.ms, ind_elig_inc=="Yes")
-phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,site,sex,age_at_consent,hiv_status,arv_current,cd4_count_1,cd4_count_2,cd4_count_3,cd4_count_4,cd4_count_5,cd4_count_6,cd4_count_7,cd4_count_8,vir_ld_rna_cop_3,vir_ld_rna_cop_4,vir_ld_rna_cop_5,vir_ld_rna_cop_6,vir_ld_rna_cop_7,vir_ld_rna_cop_8,pcv6wks,pcv14wks,pcv9mth,alcohol,anysmokenow))
-phirst.ms <- merge(phirst.ms,phirst.hh)
-rm(phirst.hh)
+phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,site,sex,age_at_consent,hiv_status,arv_current,cd4_count_1,
+                                        cd4_count_2,cd4_count_3,cd4_count_4,cd4_count_5,cd4_count_6,cd4_count_7,
+                                        cd4_count_8,vir_ld_rna_cop_3,vir_ld_rna_cop_4,vir_ld_rna_cop_5,vir_ld_rna_cop_6,
+                                        vir_ld_rna_cop_7,vir_ld_rna_cop_8,pcv6wks,pcv14wks,pcv9mth,alcohol,anysmokenow))
+phirst.ms <- merge(phirst.ms,phirst.hh,by="hh_id")
 
 
 #===============prepare master (ms) dataset for baseline demographic characteristics
@@ -42,30 +45,24 @@ phirst.ms$hiv <- if_else(phirst.ms$hiv_status=="Negative","Negative",
 
 #---------------ART status
 phirst.ms$art <- if_else(phirst.ms$arv_current=="Yes","Yes",
-                         if_else(phirst.ms$arv_current=="No","No","No"))
+                         if_else(phirst.ms$arv_current=="No","No",
+                                 if_else(phirst.ms$arv_current=="3","No",NULL)))
 
 #---------------CD4+ cell count
-phirst.ms$cd4 <- if_else(!is.na(phirst.ms$cd4_count_8),phirst.ms$cd4_count_8,
-                         if_else(!is.na(phirst.ms$cd4_count_7),phirst.ms$cd4_count_7,
-                                 if_else(!is.na(phirst.ms$cd4_count_6),phirst.ms$cd4_count_6,
-                                         if_else(!is.na(phirst.ms$cd4_count_5),phirst.ms$cd4_count_5,
-                                                 if_else(!is.na(phirst.ms$cd4_count_4),phirst.ms$cd4_count_4,
-                                                         if_else(!is.na(phirst.ms$cd4_count_3),phirst.ms$cd4_count_3,
-                                                                 if_else(!is.na(phirst.ms$cd4_count_2),phirst.ms$cd4_count_2,
-                                                                         if_else(!is.na(phirst.ms$cd4_count_1),phirst.ms$cd4_count_1, NULL))))))))
+phirst.ms$cd4 <- rowMeans(cbind(phirst.ms$cd4_count_1,phirst.ms$cd4_count_2,phirst.ms$cd4_count_3,phirst.ms$cd4_count_4,
+                            phirst.ms$cd4_count_5,phirst.ms$cd4_count_6,phirst.ms$cd4_count_7,phirst.ms$cd4_count_8), na.rm=TRUE)
+
 phirst.ms$cd4 <- if_else(phirst.ms$cd4<=350 & phirst.ms$age=="Adult","Low",
                          if_else(phirst.ms$cd4>350 & phirst.ms$age=="Adult","High",
                                  if_else(phirst.ms$cd4<=750 & phirst.ms$age=="Child","Low",
                                          if_else(phirst.ms$cd4>750 & phirst.ms$age=="Child","High", NULL))))
+
 phirst.ms$cd4 <- if_else(phirst.ms$hiv=="Positive",phirst.ms$cd4,NULL)
 
 #---------------viral load
-phirst.ms$vl <- if_else(!is.na(phirst.ms$vir_ld_rna_cop_8),phirst.ms$vir_ld_rna_cop_8,
-                        if_else(!is.na(phirst.ms$vir_ld_rna_cop_7),phirst.ms$vir_ld_rna_cop_7,
-                                if_else(!is.na(phirst.ms$vir_ld_rna_cop_6),phirst.ms$vir_ld_rna_cop_6,
-                                        if_else(!is.na(as.integer(phirst.ms$vir_ld_rna_cop_5)), as.integer(phirst.ms$vir_ld_rna_cop_5),
-                                                if_else(!is.na(phirst.ms$vir_ld_rna_cop_4),phirst.ms$vir_ld_rna_cop_4,
-                                                        if_else(!is.na(phirst.ms$vir_ld_rna_cop_3),phirst.ms$vir_ld_rna_cop_3, NULL))))))
+phirst.ms$vl <- rowMeans(cbind(phirst.ms$vir_ld_rna_cop_3,phirst.ms$vir_ld_rna_cop_4,as.integer(phirst.ms$vir_ld_rna_cop_5),
+                                phirst.ms$vir_ld_rna_cop_6,phirst.ms$vir_ld_rna_cop_7,phirst.ms$vir_ld_rna_cop_8), na.rm=TRUE)
+
 phirst.ms$vl <- if_else(phirst.ms$vl<=1000,"Low",
                         if_else(phirst.ms$vl>1000,"High", NULL))
 
@@ -95,11 +92,12 @@ phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Posi
                                      if_else(phirst.hhhiv$age=="Child" & phirst.hhhiv$hiv=="Negative",0L,
                                              if_else(phirst.hhhiv$age=="Child" & phirst.hhhiv$hiv=="Positive",0L,NULL))))
 phirst.hhhiv$age <- phirst.hhhiv$hiv <- NULL
+
 phirst.hhhiv <- setDT(phirst.hhhiv)[,list(ahiv=sum(hhiv)), by=.(hh_id)]
 
 #---------------final master dataset
 phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke))
-phirst.ms <- merge(phirst.ms,phirst.hhhiv)
+phirst.ms <- merge(phirst.ms,phirst.hhhiv,by="hh_id")
 remove(phirst.hhhiv)
 
 #---------------baseline demographic characteristics (Table 1)
@@ -128,7 +126,9 @@ phirst.fu$startdate <- na.locf(phirst.fu$startdate)
 phirst.fu$dys <- difftime(phirst.fu$visit_date,phirst.fu$startdate,units="days")
 phirst.fu$pndensity <- if_else(phirst.fu$npspneload>=1000,"High",
                                if_else(phirst.fu$npspneload<1000,"Low",NULL))
-phirst.fu <- merge(phirst.fu,phirst.ms)
+phirst.fu <- arrange(phirst.fu,visit_id)
+phirst.ms <- arrange(phirst.ms,ind_id)
+phirst.fu <- merge(phirst.fu,phirst.ms,by="ind_id")
 
 #---------------number of PNC+ adults in the household per visit
 phirst.hhpnc <- subset(phirst.fu,select=c(visit_id,age,visit,npspne))
@@ -543,8 +543,8 @@ for(i in 1:5){
   colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
   rownames(matrix.Ec) <- c("Clear","Carry")
 
-sink("m.converge6.txt", append=TRUE)
-m.converge6 <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+sink("m.converge.txt", append=TRUE)
+m.converge <- msm(statem~dys, subject=ind_id, data=phirst.fu,
                    qmatrix=matrix.Qc, ematrix=matrix.Ec,
                    covariates=~age+hiv+apncc+ahivc+abx,
                    censor=999, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
@@ -554,20 +554,19 @@ j=j+0.1
 k=k-0.4
 }
 
-m.converge6 <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/m.converge.csv"))
-dev.off()
-m.converge6$chainx <- if_else(m.converge6$chain==1,"1 (q12=0.05, q21=2.00)",
-                              if_else(m.converge6$chain==2,"1 (q12=0.05, q21=2.00)",
-                                      if_else(m.converge6$chain==3,"1 (q12=0.05, q21=2.00)",
-                                              if_else(m.converge6$chain=="1","1 (q12=0.05, q21=2.00)","1 (q12=0.05, q21=2.00)")
-ggplot(m.converge6, aes(iter,Lik2,color=chain)) + 
+m.converge <-read.csv(curl("https://raw.githubusercontent.com/deusthindwa/markov.chain.model.pneumococcus.hiv.rsa/master/data/m.converge.csv"))
+m.converge$chaincat <- if_else(m.converge$chain==1,"1 (q12=0.05, q21=2.00)",
+                              if_else(m.converge$chain==2,"2 (q12=0.15, q21=1.60)",
+                                      if_else(m.converge$chain==3,"3 (q12=0.25, q21=1.20)",
+                                              if_else(m.converge$chain==4,"4 (q12=0.35, q21=0.80)","5 (q12=0.45, q21=0.40)"))))
+dev.off()                               
+ggplot(m.converge, aes(iter,Lik2,color=chaincat)) + 
   geom_line(size=0.8) +
-  #geom_text(x=400,y=150000,size=2,fontface=1,label="AIC: 65293.91\nBIC: 65309.84") +
-  labs(title="A", x="Iteration",y="",position=position_dodge(width=0)) + 
+  labs(title="A", x="Iteration",y="-2Log-likelihood",position=position_dodge(width=0)) + 
   xlim(0,1000) + 
   ylim(60000,175000) + 
   theme_bw() +
-  theme(legend.position=c(0.8,0.4)) + 
+  theme(legend.position=c(0.8,0.7)) + 
   guides(color=guide_legend(title="Chain (initial intensities)")) +
   theme(legend.key.height=unit(0.8,"line")) + 
   theme(legend.key.width=unit(1,"line")) 
@@ -575,18 +574,14 @@ ggplot(m.converge6, aes(iter,Lik2,color=chain)) +
 remove(m.converge6)
 
 #---------------plot carriage and clearence prevalence of the model with smallest AIC
-m.OE <- msm(statem~dys, subject=ind_id, data=phirst.fu,
+p.ObsExp <- msm(statem~dys, subject=ind_id, data=phirst.fu,
              qmatrix=matrix.Qc,
              covariates=~age+hiv+apncc+ahivc+abx,
              censor=999, censor.states=c(1,2), est.initprobs=T,
              opt.method="bobyqa", control=list(maxfun=100000))
-m.OE <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95),preserve_index=TRUE,rename_index="Time")
-m.OEchild1 <- tk_tbl(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=0,hiv=0)),preserve_index=TRUE,rename_index="Time")
-m.OEchild2 <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=0,hiv=1)),preserve_index=TRUE,rename_index="Time")
-m.OEadult1 <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=1,hiv=0)),preserve_index=TRUE,rename_index="Time")
-m.OEadult2 <- as.data.frame(prevalence.msm(m.OE,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95,covariates=list(age=1,hiv=1)),preserve_index=TRUE,rename_index="Time")
+m.OEDS <- tk_tbl(prevalence.msm(p.ObsExp,times=c(14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280),ci="normal",cl=0.95),preserve_index=TRUE,rename_index="Time")
 
-A <- ggplot(m.OEchild1,aes(Time)) + 
+B <- ggplot(m.OE,aes(Time)) + 
   geom_point(aes(Time,Observed.percentages.State.1),color="blue",size=1,shape=5) +
   geom_line(aes(Time,Expected.percentages.estimates.Clear),color="blue",size=0.4) +
   geom_ribbon(aes(ymin=Expected.percentages.ci.1.2.5.,ymax=Expected.percentages.ci.1.97.5.),alpha=0.3) +
@@ -594,31 +589,16 @@ A <- ggplot(m.OEchild1,aes(Time)) +
   ylim(0,100) + 
   xlim(0,300) +
   theme_bw()
-  
-
-B <- ggplot(m.OEchild1,aes(Time)) + 
-  geom_point(aes(Time,Observed.percentages.State.2),color="blue",size=1,shape=5) +
-  geom_line(aes(Time,Expected.percentages.estimates.Carry),color="blue",size=0.4) +
-  geom_ribbon(aes(ymin=Expected.percentages.ci.2.2.5.,ymax=Expected.percentages.ci.2.97.5.),alpha=0.3) +
-  ylim(0,100) + 
-  xlim(0,300) +
-
-
 
 grid.arrange(A,B,ncol=2)
-
-dev.off()
-par(mgp=c(2,1,0),mar=c(6,4,2,2)+0.1)
-prevalence.msm(m.OE, mintime=0,maxtime=288,legend.pos=c(0,100),lwd.obs=2,lty.obs=1,col.obs="blue",lwd.exp=2,lty.exp=1,ci="normal",col.exp="red",cex=0.7,xlab="Time (days)",ylab="% Prevalence",plot=TRUE)
-legend(0,100, legend=c("Observed carriage", "Fitted model"),col=c("blue","red"), lty=1:1, cex=1, lwd=3)
 
 #---------------transition intensity matrix for a misclassification model with covariates
 #acquisition and clearance rates in HIV+ and HIV- children and adults from all HH
 set.seed(1988)
-qmatrix.msm(p.model2, covariates=list(hiv=1,age=0), ci="normal", cl=0.95, B=10, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=0,age=0), ci="normal", cl=0.95, B=10, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=1,age=1), ci="normal", cl=0.95, B=10, cores=3)
-qmatrix.msm(p.model2, covariates=list(hiv=0,age=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model6, covariates=list(hiv=1,age=0,apncc=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model6, covariates=list(hiv=0,age=0,apncc=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model6, covariates=list(hiv=1,age=1,apncc=1), ci="normal", cl=0.95, B=10, cores=3)
+qmatrix.msm(p.model6, covariates=list(hiv=0,age=1,apncc=1), ci="normal", cl=0.95, B=10, cores=3)
 
 #acquisition and clearance rates in HIV+ or HIV- children and adults from HH without HIV+ adult(s)
 set.seed(1988)
@@ -877,3 +857,7 @@ save(p.model3)
 
 #---------------model diagnostics
 logLik.msm(p.model3, by.subject=TRUE)
+
+
+keep(matrix.E,matrix.Ec,matrix.Q,matrix.Qc,phirst.cg,phirst.fu,phirst.hh,phirst.ll,phirst.ms,
+     p.model1,p.model2,p.model3,p.model4,p.model5,p.model6,p.model7,p.model8,p.ObsExp, sure = TRUE)

@@ -104,10 +104,8 @@ remove(phirst.hhhiv)
 
 #---------------baseline demographic characteristics (Table 1)
 rndr <- function(x,name,...){
-  if(!is.numeric(x)) return(render.categorical.default(x,na.is.category=FALSE))
-  what<-switch(name)
-  parse.abbrev.render.code(c("",what))(x)
-  
+  if(!is.numeric(x)) return(render.cate=gorical.default(x))
+  what<-switch(x)
 }
 table1(~site+sex+hiv+art+cd4+vl+ahivc+pcv6w+pcv9m+pcv14w+smoke+alcohol|age, data=phirst.ms,render=rndr)
          

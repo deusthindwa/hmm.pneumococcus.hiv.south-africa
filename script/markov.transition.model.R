@@ -5,19 +5,20 @@
 
 
 #===============load required packages into memory
-phirst.packages <- c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa",
+phirst.packages <- c("tidyverse","dplyr","plyr","msm","timetk","gridExtra","curl","minqa","table1",
                     "lubridate","magrittr","data.table","parallel","foreign","readstata13",
                     "wakefield","zoo","janitor","rethinking","doParallel","scales","msmtools","nlme")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #---------------load all phirst datasets (household, master and follow-up)
-phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_household.dta",generate.factors=T)
-phirst.ms <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_master.dta",generate.factors=T)
-phirst.fu <- read.dta13("~/Rproject/Markov.Model.Resources/phirst_follow-up.dta",generate.factors=T)
+phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_household.dta",generate.factors=T)
+phirst.ms <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_master.dta",generate.factors=T)
+phirst.fu <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_follow-up.dta",generate.factors=T)
 
 #---------------subset to get required variables in household, and master datasets
 phirst.hh <- subset(phirst.hh, is.na(reason_hh_not_inc))
 phirst.hh <- subset(phirst.hh, select=c(hh_id,hh_mems_11swabs))
+
 phirst.ms <- subset(phirst.ms, ind_elig_inc=="Yes")
 phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,site,sex,age_at_consent,hiv_status,arv_current,cd4_count_1,
                                         cd4_count_2,cd4_count_3,cd4_count_4,cd4_count_5,cd4_count_6,cd4_count_7,
@@ -29,25 +30,24 @@ phirst.ms <- merge(phirst.ms,phirst.hh,by="hh_id")
 #===============prepare master (ms) dataset for baseline demographic characteristics
 
 #---------------studysite
-phirst.ms$site <- if_else(phirst.ms$site=="Agincourt","Agincourt",
-                          if_else(phirst.ms$site=="Klerksdorp","Klerksdorp",NULL))
+phirst.ms$site <- as.factor(if_else(phirst.ms$site=="Agincourt","Agincourt",
+                          if_else(phirst.ms$site=="Klerksdorp","Klerksdorp",NULL)))
 
 #---------------sex category
-phirst.ms$sex <- if_else(phirst.ms$sex=="Male","Male",
-                         if_else(phirst.ms$sex=="Female","Female",NULL))
+phirst.ms$sex <- as.factor(if_else(phirst.ms$sex=="Male","Male",
+                         if_else(phirst.ms$sex=="Female","Female",NULL)))
 
 #---------------age category
-phirst.ms$age <- if_else(phirst.ms$age_at_consent<5,"Child",
-                         if_else(phirst.ms$age_at_consent>=5,"Adult",NULL))
+phirst.ms$age <- as.factor(if_else(phirst.ms$age_at_consent<5,"Child",
+                         if_else(phirst.ms$age_at_consent>=5,"Adult",NULL)))
 
 #---------------hiv status
-phirst.ms$hiv <- if_else(phirst.ms$hiv_status=="Negative","Negative",
-                         if_else(phirst.ms$hiv_status=="Positive","Positive",NULL))
+phirst.ms$hiv <- as.factor(if_else(phirst.ms$hiv_status=="Negative","Negative",
+                         if_else(phirst.ms$hiv_status=="Positive","Positive",NULL)))
 
 #---------------ART status
-phirst.ms$art <- if_else(phirst.ms$arv_current=="Yes","Yes",
-                         if_else(phirst.ms$arv_current=="No","No",
-                                 if_else(phirst.ms$arv_current=="3","No",NULL)))
+phirst.ms$art <- as.factor(if_else(phirst.ms$arv_current=="Yes","Yes",
+                         if_else(phirst.ms$arv_current=="No","No",NULL)))
 
 #---------------CD4+ cell count
 phirst.ms$cd4 <- rowMeans(cbind(phirst.ms$cd4_count_1,phirst.ms$cd4_count_2,phirst.ms$cd4_count_3,phirst.ms$cd4_count_4,
@@ -58,33 +58,35 @@ phirst.ms$cd4 <- if_else(phirst.ms$cd4<=350 & phirst.ms$age=="Adult","Low",
                                  if_else(phirst.ms$cd4<=750 & phirst.ms$age=="Child","Low",
                                          if_else(phirst.ms$cd4>750 & phirst.ms$age=="Child","High", NULL))))
 
-phirst.ms$cd4 <- if_else(phirst.ms$hiv=="Positive",phirst.ms$cd4,NULL)
+phirst.ms$cd4 <- as.factor(if_else(phirst.ms$hiv=="Positive",phirst.ms$cd4,NULL))
 
 #---------------viral load
 phirst.ms$vl <- rowMeans(cbind(phirst.ms$vir_ld_rna_cop_3,phirst.ms$vir_ld_rna_cop_4,as.integer(phirst.ms$vir_ld_rna_cop_5),
                                 phirst.ms$vir_ld_rna_cop_6,phirst.ms$vir_ld_rna_cop_7,phirst.ms$vir_ld_rna_cop_8), na.rm=TRUE)
 
-phirst.ms$vl <- if_else(phirst.ms$vl<=1000,"Low",
-                        if_else(phirst.ms$vl>1000,"High", NULL))
+phirst.ms$vl <- if_else(phirst.ms$vl<=1000,"Low",if_else(phirst.ms$vl>1000,"High", NULL))
+phirst.ms$vl <- as.factor(if_else(phirst.ms$hiv=="Positive",phirst.ms$vl,NULL))
 
 #---------------PCV status
-phirst.ms$pcv6w <- if_else(phirst.ms$pcv6wks=="Yes","Yes",
-                           if_else(phirst.ms$pcv6wks=="No","No",NULL))
-phirst.ms$pcv14w <- if_else(phirst.ms$pcv14wks=="Yes","Yes",
-                            if_else(phirst.ms$pcv14wks=="No","No",NULL))
-phirst.ms$pcv9m <- if_else(phirst.ms$pcv9mth=="Yes","Yes",
-                           if_else(phirst.ms$pcv9mth=="No","No",NULL))
+phirst.ms$pcv6w <- if_else(phirst.ms$pcv6wks=="Yes","Yes",if_else(phirst.ms$pcv6wks=="No","No",NULL))
+phirst.ms$pcv6w <- as.factor(if_else(phirst.ms$age=="Child",phirst.ms$pcv6w,NULL))
+
+phirst.ms$pcv14w <- if_else(phirst.ms$pcv14wks=="Yes","Yes",if_else(phirst.ms$pcv14wks=="No","No",NULL))
+phirst.ms$pcv14w <- as.factor(if_else(phirst.ms$age=="Child",phirst.ms$pcv14w,NULL))
+
+phirst.ms$pcv9m <- if_else(phirst.ms$pcv9mth=="Yes","Yes",if_else(phirst.ms$pcv9mth=="No","No",NULL))
+phirst.ms$pcv9m <- as.factor(if_else(phirst.ms$age=="Child",phirst.ms$pcv9m,NULL))
 
 #---------------alcohol consumption
-phirst.ms$alcohol <- if_else(phirst.ms$alcohol==1,"Yes",
-                             if_else(phirst.ms$alcohol==0,"No",NULL))
+phirst.ms$alcohol <- if_else(phirst.ms$alcohol==1,"Yes",if_else(phirst.ms$alcohol==0,"No",NULL))
+phirst.ms$alcohol <- as.factor(if_else(phirst.ms$age=="Adult",phirst.ms$alcohol,NULL))
 
 #---------------smoking status
-phirst.ms$smoke <- if_else(phirst.ms$anysmokenow==1,"Yes",
-                           if_else(phirst.ms$anysmokenow==0,"No",NULL))
+phirst.ms$smoke <- if_else(phirst.ms$anysmokenow==1,"Yes",if_else(phirst.ms$anysmokenow==0,"No",NULL))
+phirst.ms$smoke <- as.factor(if_else(phirst.ms$age=="Adult",phirst.ms$smoke,NULL))
 
 #---------------household size
-phirst.ms$hhsize <- phirst.ms$hh_mems_11swabs
+phirst.ms$hhsize <- as.integer(phirst.ms$hh_mems_11swabs)
 
 #---------------number of HIV+ adults in the household
 phirst.hhhiv <- subset(phirst.ms,select=c(hh_id,age,hiv))
@@ -93,8 +95,8 @@ phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Posi
                                      if_else(phirst.hhhiv$age=="Child" & phirst.hhhiv$hiv=="Negative",0L,
                                              if_else(phirst.hhhiv$age=="Child" & phirst.hhhiv$hiv=="Positive",0L,NULL))))
 phirst.hhhiv$age <- phirst.hhhiv$hiv <- NULL
-
 phirst.hhhiv <- setDT(phirst.hhhiv)[,list(ahiv=sum(hhiv)), by=.(hh_id)]
+phirst.hhhiv$ahivc <- as.factor(if_else(phirst.hhhiv$ahiv>=1,"Yes",if_else(phirst.hhhiv$ahiv==0,"No",NULL)))
 
 #---------------final master dataset
 phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,site,sex,hiv,art,cd4,vl,pcv6w,pcv14w,pcv9m,alcohol,smoke))
@@ -102,21 +104,12 @@ phirst.ms <- merge(phirst.ms,phirst.hhhiv,by="hh_id")
 remove(phirst.hhhiv)
 
 #---------------baseline demographic characteristics (Table 1)
-phirst.ms %>% tabyl(age, show_na=FALSE) %>% adorn_pct_formatting(digits=1)
-
-for(i in colnames(phirst.ms[c(5:17)])){
-  print(tabyl(phirst.ms[[i]],show_na=FALSE) %>% adorn_pct_formatting(digits=1))
-};remove(i)
-
-for(i in colnames(phirst.ms[c(6:17)])){
-  print(tabyl(phirst.ms[[i]][phirst.ms$age=="Child"],show_na=FALSE) %>% adorn_pct_formatting(digits=1))
-};remove(i)
-
-for(i in colnames(phirst.ms[c(6:17)])){
-  print(tabyl(phirst.ms[[i]][phirst.ms$age=="Adult"],show_na=FALSE) %>% adorn_pct_formatting(digits=1))
-};remove(i)
-
-
+rndr <- function(x,name,...){
+  if(!is.numeric(x)) return(render.cate=gorical.default(x))
+  what<-switch(x)
+}
+table1(~site+sex+hiv+art+cd4+vl+ahivc+pcv6w+pcv9m+pcv14w+smoke+alcohol|age, data=phirst.ms,render=rndr)
+         
 #===============prepare follow-up (fu) dataset for modelling
 
 #---------------merge follow-up to master dataset
@@ -125,8 +118,7 @@ phirst.fu$visit_date <- ymd(phirst.fu$visit_date)
 phirst.fu$startdate <- if_else(phirst.fu$visit==1L,phirst.fu$visit_date,NULL)
 phirst.fu$startdate <- na.locf(phirst.fu$startdate)
 phirst.fu$dys <- difftime(phirst.fu$visit_date,phirst.fu$startdate,units="days")
-phirst.fu$pndensity <- if_else(phirst.fu$npspneload>=1000,"High",
-                               if_else(phirst.fu$npspneload<1000,"Low",NULL))
+phirst.fu$pndensity <- if_else(phirst.fu$npspneload>=1000,"High", if_else(phirst.fu$npspneload<1000,"Low",NULL))
 phirst.fu <- arrange(phirst.fu,visit_id)
 phirst.ms <- arrange(phirst.ms,ind_id)
 phirst.fu <- merge(phirst.fu,phirst.ms,by="ind_id")

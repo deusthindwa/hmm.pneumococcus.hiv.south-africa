@@ -1,7 +1,7 @@
 #Written by Deus Thindwa
 #Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
-#1/10/2019 - 24/1/2020
+#11/1/2020
 
 
 #===============load required packages into memory
@@ -15,7 +15,7 @@ lapply(phirst.packages, library, character.only=TRUE)
 phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_household.dta",generate.factors=T)
 phirst.ms <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_master2.dta",generate.factors=T)
 phirst.fu <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_follow-up1.dta",generate.factors=T)
-phirst.fu.abx <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_follow-up2.dta",generate.factors=T)
+phirst.ax <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_follow-up2.dta",generate.factors=T)
 
 #---------------subset to get required variables in household, and master datasets
 phirst.hh <- subset(phirst.hh, is.na(reason_hh_not_inc))
@@ -88,6 +88,7 @@ phirst.ms$smoke <- as.factor(if_else(phirst.ms$age=="Adult",phirst.ms$smoke,NULL
 phirst.ms$hhsize <- as.integer(phirst.ms$hh_mems_11swabs)
 
 #---------------number of HIV+ adults in the household
+phirst.ms <- subset(phirst.ms,hiv_status !="Unknown")
 phirst.hhhiv <- subset(phirst.ms,select=c(hh_id,age,hiv))
 phirst.hhhiv$hhiv <- if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Positive",1L,
                              if_else(phirst.hhhiv$age=="Adult" & phirst.hhhiv$hiv=="Negative",0L,
@@ -129,8 +130,9 @@ sd(phirst.ms$cd4cont, na.rm=TRUE)
 #===============prepare follow-up dataset for modelling
 
 #---------------create follow-up continuous time in days
-phirst.fu.abx <- subset(phirst.fu.abx, select=c(finalid,antibiotic))
-phirst.fu.abx <- rename(phirst.fu.abx, c("finalid"="visit_id","antibiotic"="abx"))
+phirst.ms <- subset(phirst.ms, select=c(hh_id,ind_id,year,hhsize,age,hiv,art1,ahiv,ahivc))
+phirst.ax <- subset(phirst.ax, select=c(finalid,antibiotic))
+phirst.ax <- rename(phirst.ax, c("finalid"="visit_id","antibiotic"="abx"))
 phirst.fu <- subset(phirst.fu, select=c(ind_id,visit_id,visit_date,visit,npspne,npspneload))
 phirst.fu <- arrange(phirst.fu,visit_id)
 phirst.fu$visit_date <- ymd(phirst.fu$visit_date)
@@ -141,7 +143,7 @@ phirst.fu$dys <- difftime(phirst.fu$visit_date,phirst.fu$startdate,units="days")
 #---------------merge follow-up dataset to master dataset
 phirst.ms <- arrange(phirst.ms, ind_id)
 phirst.fu <- merge(phirst.fu, phirst.ms, by="ind_id")
-phirst.fu <- merge(x=phirst.fu, y=phirst.fu.abx, by="visit_id", all.x=TRUE)
+phirst.fu <- merge(x=phirst.fu, y=phirst.ax, by="visit_id", all.x=TRUE)
 
 #---------------number of PNC+ adults in the household per visit
 phirst.hhpnc <- subset(phirst.fu,select=c(visit_id,age,visit,npspne))

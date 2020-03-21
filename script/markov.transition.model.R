@@ -224,9 +224,9 @@ source('~/Rproject/Markov.Model/script/sfig2.R')
 #plot of within household acquisition and clearance rates and probabilities from selected model (figure 5)
 source('~/Rproject/Markov.Model/script/fig3.R')
 
-#---------------plot of community acquisition rates and probabilities from selected model (figure 6)
+#plot of community acquisition rates and probabilities from selected model (figure 6)
 
 source('~/Rproject/Markov.Model/script/fig4.R')
 
-#---------------plot of other important epidemiological characterisations of carriage (figure 7)
+#plot of other important epidemiological characterisations of carriage (figure 7)
 source('~/Rproject/Markov.Model/script/fig5.R')

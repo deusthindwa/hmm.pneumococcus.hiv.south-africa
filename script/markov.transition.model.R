@@ -195,8 +195,6 @@ p.obsexp <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 censor=9, censor.states=c(1,2), est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-c(0,14,28,42,56,70,84,98,112,126,140,154,168,182,196,210,224,238,252,266,280)
-
 phirst.oe <- tk_tbl(prevalence.msm(p.obsexp,times=seq(0,289,14)),preserve_index=TRUE,rename_index="Time")
 phirst.oe <- subset(phirst.oe,select=c(Time, Observed.State.1, Observed.State.2, Observed.percentages.State.1, Observed.percentages.State.2,
                                   Expected.Clear,Expected.Carry,Expected.percentages.Clear,Expected.percentages.Carry))
@@ -219,13 +217,16 @@ phirst.vi$probhs2 <- as.data.frame(phirst.vi$pstate)$V2
 phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Clear","Carry")
 phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
 
+#plot of viterbi algorithm
+dev.off()
 source('~/Rproject/Markov.Model/script/sfig2.R')
 
-#plot of within household acquisition and clearance rates and probabilities from selected model (figure 5)
+#plot of within household and community acquisition rates and probabilities (figure 5)
+dev.off()
 source('~/Rproject/Markov.Model/script/fig3.R')
 
 #---------------plot of community acquisition rates and probabilities from selected model (figure 6)
-
+dev.off()
 source('~/Rproject/Markov.Model/script/fig4.R')
 
 #---------------plot of other important epidemiological characterisations of carriage (figure 7)

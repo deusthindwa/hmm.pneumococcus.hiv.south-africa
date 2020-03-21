@@ -3,7 +3,7 @@
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
 #11/3/2020
 
-#---------------show swabbing visit vs carriage prevalence
+#show swabbing visit vs carriage prevalence
 phirst.d1 <- subset(subset(phirst.fu,select=c(visit_id,state,agecat,hiv)),state !=9)
 phirst.d1$visit_id <- as.integer(substr(phirst.d1$visit_id,10,12))
 phirst.d2 <- phirst.d1 %>% group_by(visit_id,agecat,hiv) %>% tally(state==2)
@@ -20,7 +20,7 @@ A<-ggplot(phirst.d1, aes(visit_id,prev*100,color=d1group)) +
   theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position="none")
 
-#---------------show number of positive samples per person vs probability density
+#show number of positive samples per person vs probability density
 phirst.d2 <- arrange(subset(subset(phirst.fu,select=c(visit_id,state,agecat,hiv)),state==2),visit_id)
 phirst.d2$ind_id <- substr(phirst.d2$visit_id,1,8)
 phirst.d2 <- phirst.d2 %>% group_by(ind_id,agecat,hiv) %>% tally()
@@ -34,7 +34,7 @@ B<-ggplot(phirst.d2) +
   theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position=c(0.7,0.8),legend.title=element_blank(),legend.key.size=unit(0.6,"cm"),legend.key=element_rect(size=5,fill="white",colour=NA),legend.spacing.x=unit(0.2,"cm"))
 
-#---------------show household size vs frequency of carriage
+#show household size vs frequency of carriage
 phirst.d3 <- subset(subset(phirst.fu,select=c(hhsize,state,agecat,hiv)),state !=9)
 phirst.d3$hhsize <- if_else(phirst.d3$hhsize<=5,"<5 members",if_else(phirst.d3$hhsize>=6 & phirst.d3$hhsize<=10,"6-10 members","11+ members"))
 phirst.d4 <- phirst.d3 %>% group_by(hhsize,agecat,hiv) %>% tally(state==2)
@@ -54,7 +54,7 @@ C<-ggplot(phirst.d3,aes(factor(hhsize,levels(factor(hhsize))[c(1,3,2)]),prev*100
   theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position="none",legend.title=element_blank()) 
 
-#---------------show sampling visit vs carriage density
+#show sampling visit vs carriage density
 phirst.d4 <- arrange(subset(subset(phirst.fu,select=c(visit_id,npdensity,agecat,hiv)),!is.na(npdensity)),visit_id)
 phirst.d4$visit_id <- as.integer(substr(phirst.d4$visit_id,10,12))
 phirst.d4$d4group <- if_else(phirst.d4$agecat=="Child" & phirst.d4$hiv=="Neg","Child HIV-",if_else(phirst.d4$agecat=="Child" & phirst.d4$hiv=="Pos","Child HIV+",

@@ -225,9 +225,14 @@ source('~/Rproject/Markov.Model/script/sfig2.R')
 dev.off()
 source('~/Rproject/Markov.Model/script/fig3.R')
 
+<<<<<<< HEAD
 #---------------plot of community acquisition rates and probabilities from selected model (figure 6)
 dev.off()
+=======
+#plot of community acquisition rates and probabilities from selected model (figure 6)
+
+>>>>>>> 805e211a0e45939b411624553fa40abe5b9d990d
 source('~/Rproject/Markov.Model/script/fig4.R')
 
-#---------------plot of other important epidemiological characterisations of carriage (figure 7)
+#plot of other important epidemiological characterisations of carriage (figure 7)
 source('~/Rproject/Markov.Model/script/fig5.R')

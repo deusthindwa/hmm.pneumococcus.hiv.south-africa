@@ -3,39 +3,85 @@
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
 #11/3/2020
 
-dev.off()  
-m.converge <- read.csv("~/Rproject/Markov.Model.Resources/data/convergence.csv")
-m.converge$chaincat <- if_else(m.converge$chain==1,"1 (q12=0.05, q21=2.00) >> (q12=0.04, q21=0.06)",
-                               if_else(m.converge$chain==2,"2 (q12=0.15, q21=1.60) >> (q12=0.04, q21=0.06)",
-                                       if_else(m.converge$chain==3,"3 (q12=0.25, q21=1.20) >> (q12=0.04, q21=0.06)",
-                                               if_else(m.converge$chain==4,"4 (q12=0.35, q21=0.80) >> (q12=0.04, q21=0.06)","5 (q12=0.45, q21=0.40) >> (q12=0.04, q21=0.06)"))))
+#overall household acquisition rates
+  p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child",tx="hhtx"),ci="normal",cl=0.95)
+  p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child",tx="hhtx"),ci="normal",cl=0.95)
+  p.modelc <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx"),ci="normal",cl=0.95)
+  p.modeld <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Adult",tx="hhtx"),ci="normal",cl=0.95)
+  
+  phirst.es0 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"),"hiv"=c("HIV+","HIV-","HIV-","HIV+"))
+  phirst.es0$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+  phirst.es0$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+  phirst.es0$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+  
+A <-ggplot(phirst.es0) +
+    geom_point(aes(iid,carry.est,color=iid),size=1.5,position=position_dodge(width=0.5),stat="identity") +
+    geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
+    theme_bw() + 
+    ylim(0.035,0.085) +
+    labs(title="A",x="",y="Household acquistion per day") + 
+    theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+    guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+    theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
-A <- ggplot(m.converge, aes(iter,Lik2,color=chaincat)) + 
-  geom_line(size=0.8) + 
-  labs(title="A", x="Iteration",y="-2Log-likelihood",position=position_dodge(width=0)) + 
-  xlim(0,1000) +
-  scale_y_continuous(breaks=c(60000,80000,100000,120000,140000,160000),labels=scientific) + 
+
+#household HIV dependent acquisition rates
+p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelc <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+phirst.es0 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-"),"age"=c("Child","Child","Adult"), "hiv"=c("HIV+","HIV-","HIV-"),"hh_hiv"=c("HH without Adult HIV+","HH without Adult HIV+","HH without Adult HIV+"))
+phirst.es0$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2])
+phirst.es0$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2])
+phirst.es0$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2])
+
+p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelc <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modeld <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+phirst.es1 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"), "hiv"=c("HIV+","HIV-","HIV-","HIV+"),"hh_hiv"=c("HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+"))
+phirst.es1$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es1$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es1$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+
+phirst.es0 <- rbind(phirst.es0,phirst.es1)
+B<-ggplot(phirst.es0) +
+  geom_point(aes(iid,carry.est,color=iid,shape=hh_hiv), size=1.5, position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est,shape=hh_hiv),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
   theme_bw() + 
-  theme(legend.position=c(0.55,0.6)) + 
-  guides(color=guide_legend(title="Chain (initial intensity) >> (final intensity)")) + 
-  theme(legend.key.height=unit(0.8,"line")) + 
-  theme(legend.key.width=unit(1,"line")) + 
-  theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10))
+  ylim(0.035,0.085) +
+  labs(title="B",x="",y="Household acquistion per day") + 
+  theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
-cols <- c("Observed vs expected clear"="#0000FF","Observed vs expected carry"="#FF0000")
-B <- ggplot(m.OEDS,aes(Time)) + 
-  geom_point(aes(Time,obs.p.clear,color="Observed vs expected clear"),size=2.4,shape=5) + 
-  geom_line(aes(Time,exp.p.clear,color="Observed vs expected clear"),size=1) + 
-  geom_ribbon(aes(ymin=lci.clear*100, ymax=uci.clear*100, color="Observed vs expected clear"), alpha=0.2, size=0.1) +
-  geom_point(aes(Time,obs.p.carry,color="Observed vs expected carry"),size=2.4,shape=5) + 
-  geom_line(aes(Time,exp.p.carry,color="Observed vs expected carry"),size=1) + 
-  geom_ribbon(aes(ymin=lci.carry*100, ymax=uci.carry*100, color="Observed vs expected carry"), alpha=0.2, size=0.1) +
-  labs(title="B", x="Days",y="Prevalence (%)") + 
-  scale_x_continuous(breaks=c(0,40,80,120,160,200,240,280)) + 
-  scale_y_continuous(breaks=c(20,30,40,50,60,70,80)) + 
+
+#household HIV dependent probability rates
+p.modela <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelb <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelc <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+phirst.es0 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-"),"age"=c("Child","Child","Adult"), "hiv"=c("HIV+","HIV-","HIV-"),"hh_hiv"=c("HH without Adult HIV+","HH without Adult HIV+","HH without Adult HIV+"))
+phirst.es0$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2])
+phirst.es0$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2])
+phirst.es0$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2])
+
+p.modela <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelb <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelc <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modeld <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Pos",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+phirst.es1 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"), "hiv"=c("HIV+","HIV-","HIV-","HIV+"),"hh_hiv"=c("HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+"))
+phirst.es1$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es1$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es1$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+
+phirst.es0 <- rbind(phirst.es0,phirst.es1)
+C<-ggplot(phirst.es0) +
+  geom_point(aes(iid,carry.est,color=iid,shape=hh_hiv), size=1.5, position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est,shape=hh_hiv),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
   theme_bw() + 
-  theme(legend.position=c(0.3,0.55)) + 
-  guides(color=guide_legend(title="")) +
-  theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10))
+  labs(title="C",x="",y="Household acquistion probability") + 
+  theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
-grid.arrange(A,B,ncol=2)
+print(ggarrange(A,B,C,ncol=3,nrow=1,common.legend=TRUE,legend="right",vjust=-2))
+remove(phirst.es0,phirst.es1,p.modela,p.modelb,p.modelc,p.modeld)

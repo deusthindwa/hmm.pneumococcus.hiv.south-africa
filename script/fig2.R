@@ -4,94 +4,70 @@
 #11/3/2020
 
 #---------------show swabbing visit vs carriage prevalence
-phirst.d1 <- subset(phirst.fu,select=c(visit_id,state,age,hiv))
+phirst.d1 <- subset(subset(phirst.fu,select=c(visit_id,state,agecat,hiv)),state !=9)
 phirst.d1$visit_id <- as.integer(substr(phirst.d1$visit_id,10,12))
-phirst.d1$state <- if_else(phirst.d1$state==2L,1L,0L)
-phirst.d1 <- subset(phirst.d1, state==1)
-phirst.d1 <- arrange(phirst.d1,visit_id)
-phirst.d1 <- phirst.d1 %>% group_by(visit_id,age,hiv) %>% tally()
-phirst.d1$d1group <- if_else(phirst.d1$age==0L & phirst.d1$hiv==0L,"HIV- child",
-                             if_else(phirst.d1$age==0L & phirst.d1$hiv==1L,"HIV+ child",
-                                     if_else(phirst.d1$age==1L & phirst.d1$hiv==0L,"HIV- adult",
-                                             if_else(phirst.d1$age==1L & phirst.d1$hiv==1L,"HIV+ adult",NULL))))
+phirst.d2 <- phirst.d1 %>% group_by(visit_id,agecat,hiv) %>% tally(state==2)
+phirst.d1 <- phirst.d1 %>% group_by(visit_id,agecat,hiv) %>% tally()
+phirst.d1$nPos <- phirst.d2$n; phirst.d1$prev <- phirst.d1$nPos/phirst.d1$n; remove(phirst.d2)
+phirst.d1$d1group <- if_else(phirst.d1$agecat=="Child" & phirst.d1$hiv=="Neg","Child HIV-",if_else(phirst.d1$agecat=="Child" & phirst.d1$hiv=="Pos","Child HIV+",
+                     if_else(phirst.d1$agecat=="Adult" & phirst.d1$hiv=="Neg","Adult HIV-",if_else(phirst.d1$agecat=="Adult" & phirst.d1$hiv=="Pos","Adult HIV+",NULL))))
 
-phirst.d1 <- ddply(subset(phirst.d1,!is.na(d1group)), "visit_id", mutate, prev=n*100/sum(n))
-
-A<-ggplot(phirst.d1, aes(visit_id, prev, color=d1group)) + 
-  geom_point(size=1.5, na.rm=TRUE) + 
-  geom_smooth(se=TRUE,alpha=0.8) +
-  labs(title="A", x="Sampling visit", y="Carriage prevalence (%)") + 
-  theme(legend.position="none") + 
+A<-ggplot(phirst.d1, aes(visit_id,prev*100,color=d1group)) + 
+  geom_line(size=1, na.rm=TRUE) + 
+  geom_smooth(data=subset(phirst.d1,d1group !="Child HIV+"),se=TRUE,alpha=0.6,method=loess) +
+  labs(title="A",x="Sampling visit",y="Carriage prevalence (%)") + 
   theme_bw() + 
-  ylim(0,80) +
-  theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
+  theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position="none")
 
-#---------------show number of carriage episodes per person vs carriage prevalence
-phirst.d2 <- subset(phirst.fu,select=c(ind_id,state,age,hiv))
-phirst.d2$state <- if_else(phirst.d2$state==2L,1L,0L)
-phirst.d2 <- subset(phirst.d2, state==1)
-phirst.d2 <- arrange(phirst.d2,ind_id)
-phirst.d2 <- phirst.d2 %>% group_by(ind_id,age,hiv) %>% tally(state)
-phirst.d2$d2group <- if_else(phirst.d2$age==0L & phirst.d2$hiv==0L,"HIV- child",
-                             if_else(phirst.d2$age==0L & phirst.d2$hiv==1L,"HIV+ child",
-                                     if_else(phirst.d2$age==1L & phirst.d2$hiv==0L,"HIV- adult",
-                                             if_else(phirst.d2$age==1L & phirst.d2$hiv==1L,"HIV+ adult",NULL))))
+#---------------show number of positive samples per person vs probability density
+phirst.d2 <- arrange(subset(subset(phirst.fu,select=c(visit_id,state,agecat,hiv)),state==2),visit_id)
+phirst.d2$ind_id <- substr(phirst.d2$visit_id,1,8)
+phirst.d2 <- phirst.d2 %>% group_by(ind_id,agecat,hiv) %>% tally()
+phirst.d2$d2group <- if_else(phirst.d2$agecat=="Child" & phirst.d2$hiv=="Neg","Child HIV-",if_else(phirst.d2$agecat=="Child" & phirst.d2$hiv=="Pos","Child HIV+",
+                     if_else(phirst.d2$agecat=="Adult" & phirst.d2$hiv=="Neg","Adult HIV-",if_else(phirst.d2$agecat=="Adult" & phirst.d2$hiv=="Pos","Adult HIV+",NULL))))
 
-B <- ggplot(subset(phirst.d2, !is.na(d2group))) + 
+B<-ggplot(phirst.d2) + 
   geom_density(aes(x=n,color=d2group,fill=d2group), alpha=0.2) +
   labs(title="B",x="Number of positive samples per person",y="Probability density") + 
   theme_bw() + 
-  theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
-  theme(legend.position=c(0.7,0.8),legend.title=element_blank(),legend.key.size=unit(0.8,"lines")) 
+  theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
+  theme(legend.position=c(0.7,0.8),legend.title=element_blank(),legend.key.size=unit(0.6,"cm"),legend.key=element_rect(size=5,fill="white",colour=NA),legend.spacing.x=unit(0.2,"cm"))
 
 #---------------show household size vs frequency of carriage
-phirst.d3 <- subset(phirst.fu,select=c(hhsize,state,age,hiv))
-phirst.d3$hhsize <- as.integer(phirst.d3$hhsize)
-phirst.d3$hhsize <- if_else(phirst.d3$hhsize<=5,"<5 members", if_else(phirst.d3$hhsize>=6 & phirst.d3$hhsize<=10,"6-10 members","11+ members"))
-phirst.d3$state <- if_else(phirst.d3$state==2L,1L,0L)
-phirst.d3 <- subset(phirst.d3, state==1)
-phirst.d3 <- arrange(phirst.d3,hhsize)
-phirst.d3 <- phirst.d3 %>% group_by(hhsize,age,hiv) %>% tally(state)
-phirst.d3$d3group <- if_else(phirst.d3$age==0L & phirst.d3$hiv==0L,"HIV- child",
-                             if_else(phirst.d3$age==0L & phirst.d3$hiv==1L,"HIV+ child",
-                                     if_else(phirst.d3$age==1L & phirst.d3$hiv==0L,"HIV- adult",
-                                             if_else(phirst.d3$age==1L & phirst.d3$hiv==1L,"HIV+ adult",NULL))))
+phirst.d3 <- subset(subset(phirst.fu,select=c(hhsize,state,agecat,hiv)),state !=9)
+phirst.d3$hhsize <- if_else(phirst.d3$hhsize<=5,"<5 members",if_else(phirst.d3$hhsize>=6 & phirst.d3$hhsize<=10,"6-10 members","11+ members"))
+phirst.d4 <- phirst.d3 %>% group_by(hhsize,agecat,hiv) %>% tally(state==2)
+phirst.d3 <- phirst.d3 %>% group_by(hhsize,agecat,hiv) %>% tally()
+phirst.d3$nPos <- phirst.d4$n; phirst.d3$prev <- phirst.d3$nPos/phirst.d3$n; remove(phirst.d4)
+phirst.d3 <- phirst.d3 %>% mutate(lci=prev-(1.96*sqrt(prev*(1-prev)/n)), uci=prev+(1.96*sqrt(prev*(1-prev)/n)))
+phirst.d3$d3group <- if_else(phirst.d3$agecat=="Child" & phirst.d3$hiv=="Neg","Child HIV-",if_else(phirst.d3$agecat=="Child" & phirst.d3$hiv=="Pos","Child HIV+",
+                     if_else(phirst.d3$agecat=="Adult" & phirst.d3$hiv=="Neg","Adult HIV-",if_else(phirst.d3$agecat=="Adult" & phirst.d3$hiv=="Pos","Adult HIV+",NULL))))
+phirst.d3[nrow(phirst.d3) + 1,] = list("11+ members","Child","Pos",NA,NA,0,0,0,"Child HIV+")
 
-phirst.d3 <- ddply(subset(phirst.d3,!is.na(d3group)), "hhsize", mutate, prev=n/sum(n),
-                   lci=prev-(1.96*sqrt(prev*(1-prev)/n)), uci=prev+(1.96*sqrt(prev*(1-prev)/n)))
-phirst.d3$lci <- if_else(phirst.d3$lci<0,0,phirst.d3$lci)
-
-C<-ggplot(subset(phirst.d3, !is.na(hhsize)),aes(factor(hhsize,levels(factor(hhsize))[c(1,3,2)]),prev*100,fill=d3group)) + 
+C<-ggplot(phirst.d3,aes(factor(hhsize,levels(factor(hhsize))[c(1,3,2)]),prev*100,fill=d3group)) + 
   geom_bar(stat="identity",color="gray50",position=position_dodge(0.9)) + 
   geom_errorbar(aes(ymin=lci*100, ymax=uci*100), width=0.2, position=position_dodge(0.9)) +
   labs(title="C", x="Household size",y="Carriage prevalence (%)") + 
   theme_bw() +
-  ylim(0,80) +
-  theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
+  ylim(0,100) +
+  theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position="none",legend.title=element_blank()) 
 
 #---------------show sampling visit vs carriage density
-phirst.d4 <- subset(phirst.fu,select=c(visit_id,npspneload,age,hiv))
+phirst.d4 <- arrange(subset(subset(phirst.fu,select=c(visit_id,npdensity,agecat,hiv)),!is.na(npdensity)),visit_id)
 phirst.d4$visit_id <- as.integer(substr(phirst.d4$visit_id,10,12))
-phirst.d4 <- subset(phirst.d4, !is.na(npspneload))
-phirst.d4$npspneload <- as.integer(phirst.d4$npspneload)
-phirst.d4 <- arrange(phirst.d4,visit_id)
-phirst.d4 <- phirst.d4 %>% group_by(visit_id,age,hiv) %>% summarise_all(mean)
-phirst.d4$d4group <- if_else(phirst.d4$age==0L & phirst.d4$hiv==0L,"HIV- child",
-                             if_else(phirst.d4$age==0L & phirst.d4$hiv==1L,"HIV+ child",
-                                     if_else(phirst.d4$age==1L & phirst.d4$hiv==0L,"HIV- adult",
-                                             if_else(phirst.d4$age==1L & phirst.d4$hiv==1L,"HIV+ adult",NULL))))
+phirst.d4$d4group <- if_else(phirst.d4$agecat=="Child" & phirst.d4$hiv=="Neg","Child HIV-",if_else(phirst.d4$agecat=="Child" & phirst.d4$hiv=="Pos","Child HIV+",
+                     if_else(phirst.d4$agecat=="Adult" & phirst.d4$hiv=="Neg","Adult HIV-",if_else(phirst.d4$agecat=="Adult" & phirst.d4$hiv=="Pos","Adult HIV+",NULL))))
 
-D<-ggplot(subset(phirst.d4, !is.na(d4group)),aes(x=d4group,y=npspneload,color=d4group)) + 
+D<-ggplot(phirst.d4,aes(d4group,npdensity,color=d4group)) + 
   geom_boxplot(outlier.shape=16, outlier.size=2, notch=TRUE, size=1) +
   stat_summary(fun.y=mean, colour="black", geom="point", shape=18, size=3) +
   scale_y_log10(labels=trans_format("log10",math_format(10^.x))) +
   labs(title="D",x="",y="Carriage density (GE/ml)") + 
-  theme(legend.position=c(50,80)) + 
   theme_bw() + 
   theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position="none",legend.title=element_blank())
 
 grid.arrange(A,B,C,D,nrow=2)
-remove(A,B,C,D,phirst.d1,phirst.d2,phirst.d3,phirst.d4, phirst.fu.abx)
+remove(A,B,C,D,phirst.d1,phirst.d2,phirst.d3,phirst.d4)

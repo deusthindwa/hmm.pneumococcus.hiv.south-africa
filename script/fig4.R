@@ -3,53 +3,153 @@
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
 #11/3/2020
 
-dev.off()
-A <-ggplot(subset(phirst.vi,subject=="A001-001")) +
-  geom_point(aes(time,observed2, color=observed2), size=2.4, shape=20) + 
-  theme_bw() + 
-  labs(title="Person A",x="",y="Observed data") + 
-  theme(axis.text.y=element_text(face="bold",size=10),axis.text.x=element_blank()) +
-  theme(legend.position="none") +
-  theme(plot.margin=unit(c(5.5,5.5,-5.5,5.5),"pt"))
+#overall carriage duration
+p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child"),ci="normal",cl=0.95)
+p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child"),ci="normal",cl=0.95)
+p.modelc <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Adult"),ci="normal",cl=0.95)
+p.modeld <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Adult"),ci="normal",cl=0.95)
 
-B <-ggplot(subset(phirst.vi,subject=="A001-001")) + 
-  geom_point(aes(time,fitted2,color=fitted2), size=2.4, shape=20) + 
-  theme_bw() + 
-  labs(title="",x="",y="Viterbi states") + 
-  theme(axis.text.y=element_text(face="bold",size=10),axis.text.x=element_blank()) +
-  theme(legend.position="none") +
-  theme(plot.margin=unit(c(-5.5,5.5,-5.5,5.5),"pt"))
+phirst.es0 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"),"hiv"=c("HIV+","HIV-","HIV-","HIV+"))
+phirst.es0$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es0$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es0$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
 
-C <-ggplot(subset(phirst.vi,subject=="A001-001")) +
-  geom_line(aes(time,probhs2),color='gray50',size=0.6) +
+A <-ggplot(phirst.es0) +
+  geom_point(aes(iid,carry.est,color=iid),size=1.5,position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
   theme_bw() + 
-  labs(title="",x="Time (days)",y="Viterbi probability") +
-  scale_y_continuous(labels=percent) +
-  theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
-  theme(plot.margin=unit(c(-5,5.5,5.5,5.5),"pt"))
+  ylim(0.035,0.085) +
+  labs(title="A",x="",y="Household acquistion per day") + 
+  theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
-D <-ggplot(subset(phirst.vi,subject=="A234-004")) +
-  geom_point(aes(time,observed2, color=observed2), size=2.4, shape=20) + 
+
+#household HIV dependent acquisition rates
+p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelc <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+phirst.es0 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-"),"age"=c("Child","Child","Adult"), "hiv"=c("HIV+","HIV-","HIV-"),"hh_hiv"=c("HH without Adult HIV+","HH without Adult HIV+","HH without Adult HIV+"))
+phirst.es0$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2])
+phirst.es0$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2])
+phirst.es0$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2])
+
+p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelc <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modeld <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+phirst.es1 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"), "hiv"=c("HIV+","HIV-","HIV-","HIV+"),"hh_hiv"=c("HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+"))
+phirst.es1$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es1$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es1$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+
+phirst.es0 <- rbind(phirst.es0,phirst.es1)
+B<-ggplot(phirst.es0) +
+  geom_point(aes(iid,carry.est,color=iid,shape=hh_hiv), size=1.5, position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est,shape=hh_hiv),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
   theme_bw() + 
-  labs(title="Person B",x="",y="") + 
-  theme(axis.text.x=element_blank(),axis.text.y=element_blank()) +
-  theme(legend.position="none") +
-  theme(plot.margin=unit(c(5.5,15,-5.5,-5.5),"pt"))
+  ylim(0.035,0.085) +
+  labs(title="B",x="",y="Household acquistion per day") + 
+  theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="none",legend.title=element_text(face="bold",size=10))
 
-E <-ggplot(subset(phirst.vi,subject=="A234-004")) + 
-  geom_point(aes(time,fitted2,color=fitted2), size=2.4, shape=20) + 
+
+#household HIV dependent probability rates
+p.modela <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelb <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+p.modelc <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+phirst.es0 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-"),"age"=c("Child","Child","Adult"), "hiv"=c("HIV+","HIV-","HIV-"),"hh_hiv"=c("HH without Adult HIV+","HH without Adult HIV+","HH without Adult HIV+"))
+phirst.es0$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2])
+phirst.es0$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2])
+phirst.es0$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2])
+
+p.modela <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelb <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modelc <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+p.modeld <- pmatrix.msm(p.model4,t=289,covariates=list(hiv="Pos",agecat="Adult",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+phirst.es1 <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"), "hiv"=c("HIV+","HIV-","HIV-","HIV+"),"hh_hiv"=c("HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+","HH with Adult HIV+"))
+phirst.es1$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es1$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es1$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+
+phirst.es0 <- rbind(phirst.es0,phirst.es1)
+C<-ggplot(phirst.es0) +
+  geom_point(aes(iid,carry.est,color=iid,shape=hh_hiv), size=1.5, position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est,shape=hh_hiv),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
   theme_bw() + 
-  labs(title="",x="",y="") + 
-  theme(axis.text.x=element_blank(),axis.text.y=element_blank()) +
-  theme(legend.position="none") +
-  theme(plot.margin=unit(c(-5.5,15,-5.5,-5.5),"pt"))
+  labs(title="C",x="",y="Household acquistion probability") + 
+  theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
-F <-ggplot(subset(phirst.vi,subject=="A234-004")) +
-  geom_line(aes(time,probhs2),color='gray50',size=0.6) +
+remove(phirst.es0,phirst.es1,p.modela,p.modelb,p.modelc,p.modeld)
+print(ggarrange(A,B,C,ncol=3,nrow=1,common.legend=TRUE,legend="right",vjust=-2))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#---------------community carriage acquisition and probability estimates from selected model
+set.seed(1988)
+p.modela <- qmatrix.msm(p.model5b, covariates=list(hiv=1,age=0,apncc=1),ci="normal",cl=0.95)
+p.modelb <- qmatrix.msm(p.model5b, covariates=list(hiv=0,age=0,apncc=1),ci="normal",cl=0.95)
+p.modelc <- qmatrix.msm(p.model5b, covariates=list(hiv=1,age=1,apncc=1),ci="normal",cl=0.95)
+p.modeld <- qmatrix.msm(p.model5b, covariates=list(hiv=0,age=1,apncc=1),ci="normal",cl=0.95)
+
+phirst.es <- data.frame("iid"=c("HIV+ Child","HIV- Child","HIV+ Adult","HIV- Adult"),"age"=c("Child","Child","Adult","Adult"), "hiv"=c("HIV+","HIV-","HIV+","HIV-"))
+phirst.es$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+
+A <- ggplot(phirst.es) +
+  geom_point(aes(iid,carry.est,color=iid), shape=18, size=4, position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
   theme_bw() + 
-  labs(title="",x="Time (days)",y="") +
-  scale_y_continuous(labels=percent) +
-  theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_blank()) +
-  theme(plot.margin=unit(c(-5,15,5.5,-5.5),"pt"))
+  labs(title="A",x="",y="CM carriage acquistion per day") + 
+  theme(axis.text.y=element_text(face="bold",size=10)) + 
+  theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="none",legend.title=element_text(face="bold",size=10))
 
-grid.arrange(A,D,B,E,C,F,nrow=3,ncol=2)
+p.modela <- pmatrix.msm(p.model5b, covariates=list(hiv=1,age=0,apncc=1),ci="normal",cl=0.95)
+p.modelb <- pmatrix.msm(p.model5b, covariates=list(hiv=0,age=0,apncc=1),ci="normal",cl=0.95)
+p.modelc <- pmatrix.msm(p.model5b, covariates=list(hiv=1,age=1,apncc=1),ci="normal",cl=0.95)
+p.modeld <- pmatrix.msm(p.model5b, covariates=list(hiv=0,age=1,apncc=1),ci="normal",cl=0.95)
+
+phirst.es <- data.frame("iid"=c("HIV+ Child","HIV- Child","HIV+ Adult","HIV- Adult"),"age"=c("Child","Child","Adult","Adult"), "hiv"=c("HIV+","HIV-","HIV+","HIV-"))
+phirst.es$carry.est <- c(p.modela$estimates[1,2],p.modelb$estimates[1,2],p.modelc$estimates[1,2],p.modeld$estimates[1,2])
+phirst.es$Lcarry.est <- c(p.modela$L[1,2],p.modelb$L[1,2],p.modelc$L[1,2],p.modeld$L[1,2])
+phirst.es$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.modeld$U[1,2])
+
+B <- ggplot(phirst.es) +
+  geom_point(aes(iid,carry.est,color=iid), shape=18, size=4, position=position_dodge(width=0.5),stat="identity") +
+  geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est),width=0.2,size=0.6,position=position_dodge(width=0.5)) +
+  theme_bw() + 
+  labs(title="B",x="",y="CM carriage acquisition probability") + 
+  theme(axis.text.y=element_text(face="bold",size=10)) + 
+  theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
+  guides(color=guide_legend(title=""),shape=guide_legend(title="")) +
+  theme(legend.text=element_text(size=10),legend.position="none",legend.title=element_text(face="bold",size=10))
+
+remove(phirst.es)
+print(ggarrange(A,B,ncol=2,nrow=1,common.legend=TRUE,legend="right",vjust=-2))

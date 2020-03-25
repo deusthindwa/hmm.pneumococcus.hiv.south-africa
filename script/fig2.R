@@ -14,7 +14,7 @@ phirst.d1$d1group <- if_else(phirst.d1$agecat=="Child" & phirst.d1$hiv=="Neg","C
 
 A<-ggplot(phirst.d1, aes(visit_id,prev*100,color=d1group)) + 
   geom_line(size=1, na.rm=TRUE) + 
-  geom_smooth(data=subset(phirst.d1,d1group !="Child HIV+"),se=TRUE,alpha=0.6,method=loess) +
+  #geom_smooth(data=subset(phirst.d1,d1group !="Child HIV+"),se=TRUE,alpha=0.6,method=loess) +
   labs(title="A",x="Sampling visit",y="Carriage prevalence (%)") + 
   theme_bw() + 
   theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
@@ -32,11 +32,11 @@ B<-ggplot(phirst.d2) +
   labs(title="B",x="Number of positive samples per person",y="Probability density") + 
   theme_bw() + 
   theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_text(face="bold",size=10)) +
-  theme(legend.position=c(0.7,0.8),legend.title=element_blank(),legend.key.size=unit(0.6,"cm"),legend.key=element_rect(size=5,fill="white",colour=NA),legend.spacing.x=unit(0.2,"cm"))
+  theme(legend.position=c(0.7,0.75),legend.title=element_blank(),legend.key.size=unit(0.4,"cm"),legend.key=element_rect(size=5,fill="white",colour=NA),legend.spacing.x=unit(0.2,"cm"))
 
 #show household size vs frequency of carriage
 phirst.d3 <- subset(subset(phirst.fu,select=c(hhsize,state,agecat,hiv)),state !=9)
-phirst.d3$hhsize <- if_else(phirst.d3$hhsize<=5,"<5 members",if_else(phirst.d3$hhsize>=6 & phirst.d3$hhsize<=10,"6-10 members","11+ members"))
+phirst.d3$hhsize <- if_else(phirst.d3$hhsize<=5,"<6 members",if_else(phirst.d3$hhsize>=6 & phirst.d3$hhsize<=10,"6-10 members","11+ members"))
 phirst.d4 <- phirst.d3 %>% group_by(hhsize,agecat,hiv) %>% tally(state==2)
 phirst.d3 <- phirst.d3 %>% group_by(hhsize,agecat,hiv) %>% tally()
 phirst.d3$nPos <- phirst.d4$n; phirst.d3$prev <- phirst.d3$nPos/phirst.d3$n; remove(phirst.d4)

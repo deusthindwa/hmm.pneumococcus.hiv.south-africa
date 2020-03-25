@@ -167,6 +167,7 @@ p.model4 <- msm(state~dys,subject=ind_id,data=phirst.fu,
 #comparing the AIC and BIC of the fitted models 
 AIC(p.model1,p.model2,p.model3,p.model4)
 AIC(p.model1,k=log(length(phirst.fu)));AIC(p.model2,k=log(length(phirst.fu)));AIC(p.model3,k=log(length(phirst.fu)));AIC(p.model4,k=log(length(phirst.fu)))
+save.image()
 
 #run multiple chains to gurantee convergence of the selected model
 j=0.05;k=2.00
@@ -209,7 +210,7 @@ phirst.oe$uci.carry=phirst.oe$exp.p.carry/100+(1.96*sqrt(phirst.oe$exp.p.carry/1
 #plot of model parameter convergence, and observed and predictions (supplementary figure 1)
 source('~/Rproject/Markov.Model/script/sfig1.R')
 
-#viterbi algorithm (supplementary figure 2)
+#viterbi algorithm
 phirst.vi <- viterbi.msm(p.model4)
 phirst.vi$fitted <- as.integer(phirst.vi$fitted)
 phirst.vi$probhs1 <- as.data.frame(phirst.vi$pstate)$V1
@@ -217,22 +218,27 @@ phirst.vi$probhs2 <- as.data.frame(phirst.vi$pstate)$V2
 phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Clear","Carry")
 phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
 
-#plot of viterbi algorithm
+#plot of viterbi algorithm (supplementary figure 2)
 dev.off()
 source('~/Rproject/Markov.Model/script/sfig2.R')
 
-#plot of within household and community acquisition rates and probabilities (figure 5)
+#plot of within household and community acquisition rates and probabilities (figure 3)
 dev.off()
 source('~/Rproject/Markov.Model/script/fig3.R')
 
-<<<<<<< HEAD
-#---------------plot of community acquisition rates and probabilities from selected model (figure 6)
+#plot of duration of carriage and carriage clearance probabilities (figure 4)
 dev.off()
-=======
-#plot of community acquisition rates and probabilities from selected model (figure 6)
-
->>>>>>> 805e211a0e45939b411624553fa40abe5b9d990d
 source('~/Rproject/Markov.Model/script/fig4.R')
 
-#plot of other important epidemiological characterisations of carriage (figure 7)
+#plot of carriage characterisation (figure 5)
+dev.off()
 source('~/Rproject/Markov.Model/script/fig5.R')
+
+#plot of other important epidemiological characterisations of carriage (supplementary figure 3)
+dev.off()
+source('~/Rproject/Markov.Model/script/sfig3.R')
+
+#plot of sensitivity analysis of # of HIV+ adults in the household on carriagr acquisition (supplementary figure 4)
+dev.off()
+source('~/Rproject/Markov.Model/script/sfig4.R')
+

@@ -1,7 +1,7 @@
 #Written by Deus Thindwa
 #Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
-#11/3/2020
+#20/9/2019 - 11/3/2020
 
 #initiate transition intensity matrix Q
 matrix.Q <- rbind(c(0.0,0.9),c(0.9,0.0))

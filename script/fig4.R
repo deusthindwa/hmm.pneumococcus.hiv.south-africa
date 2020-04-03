@@ -1,7 +1,7 @@
 #Written by Deus Thindwa
 #Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
-#11/3/2020
+#20/9/2019 - 11/3/2020
 
 #average carriage duration by ART status
 p.modela <- qmatrix.msm(p.model4, covariates=list(hiv="Pos",agecat="Child",artv="No"),ci="normal",cl=0.95)
@@ -78,17 +78,17 @@ C <- ggplot(phirst.es) +
   geom_point(aes(iid,1/clear.est,color=iid),shape=8,size=1.5,position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
   ylim(0,100) +
-  labs(title="C",x="",y="Average duration overall (days)") + 
+  labs(title="C",x="",y="Overall average duration (days)") + 
   theme(axis.text.y=element_text(face="bold",size=10)) + 
   theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
   guides(color=guide_legend(title=""),shape=FALSE,fill=FALSE) +
   theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
 #probability of clearance
-p.modela <- pmatrix.msm(p.model4, covariates=list(hiv="Pos",agecat="Child"),ci="normal",cl=0.95)
-p.modelb <- pmatrix.msm(p.model4, covariates=list(hiv="Neg",agecat="Child"),ci="normal",cl=0.95)
-p.modelc <- pmatrix.msm(p.model4, covariates=list(hiv="Neg",agecat="Adult"),ci="normal",cl=0.95)
-p.modeld <- pmatrix.msm(p.model4, covariates=list(hiv="Pos",agecat="Adult"),ci="normal",cl=0.95)
+p.modela <- pmatrix.msm(p.model4,t=1,covariates=list(hiv="Pos",agecat="Child"),ci="normal",cl=0.95)
+p.modelb <- pmatrix.msm(p.model4,t=1,covariates=list(hiv="Neg",agecat="Child"),ci="normal",cl=0.95)
+p.modelc <- pmatrix.msm(p.model4,t=1,covariates=list(hiv="Neg",agecat="Adult"),ci="normal",cl=0.95)
+p.modeld <- pmatrix.msm(p.model4,t=1,covariates=list(hiv="Pos",agecat="Adult"),ci="normal",cl=0.95)
 phirst.es <- data.frame("iid"=c("Child HIV+","Child HIV-","Adult HIV-","Adult HIV+"),"age"=c("Child","Child","Adult","Adult"),"hiv"=c("HIV+","HIV-","HIV-","HIV+"))
 phirst.es$clear.est <- c(p.modela$estimates[2,1],p.modelb$estimates[2,1],p.modelc$estimates[2,1],p.modeld$estimates[2,1])
 phirst.es$Lclear.est <- c(p.modela$L[2,1],p.modelb$L[2,1],p.modelc$L[2,1],p.modeld$L[2,1])
@@ -99,7 +99,7 @@ D <- ggplot(phirst.es) +
   geom_point(aes(iid,clear.est,color=iid),shape=8,size=1.5,position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
   ylim(0,0.08) +
-  labs(title="D",x="",y="Probability of clearance") + 
+  labs(title="D",x="",y="Daily probability of clearance") + 
   theme(axis.text.y=element_text(face="bold",size=10)) + 
   theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
   guides(color=guide_legend(title=""),shape=FALSE,fill=FALSE) +

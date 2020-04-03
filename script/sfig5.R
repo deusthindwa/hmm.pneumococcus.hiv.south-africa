@@ -1,7 +1,7 @@
 #Written by Deus Thindwa
 #Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
-#11/3/2020
+#20/9/2019 - 11/3/2020
 
 #refit the hidden Markov model with # of adult HIV+ in the household as covariate
 phirst.hs <- subset(subset(phirst.fu,select=c(ind_id,dys,state,obst,agecat,hiv,tx,ahiv)),ahiv !=0)
@@ -78,7 +78,7 @@ A <- ggplot(phirst.es) +
   geom_errorbar(aes(iid,color=factor(iid,levels(factor(iid))[c(1,3,2,4)]),ymin=Lcarry.est,ymax=Ucarry.est,shape=status),width=0.1,size=0.5,position=position_dodge(width=0.5)) +
   geom_point(aes(iid,carry.est,color=iid,shape=status), size=1.5, position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
-  labs(title="A",x="",y="HH acquisition per day") + 
+  labs(title="A",x="",y="HH daily acquisition rate") + 
   ylim(0,0.20) +
   theme(axis.text.y=element_text(face="bold",size=10)) + 
   theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
@@ -140,7 +140,7 @@ B <- ggplot(phirst.es) +
   geom_point(aes(iid,carry.est,color=iid,shape=status), size=1.5, position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
   ylim(0.18,0.80) +
-  labs(title="B",x="",y="HH acquisition probability") + 
+  labs(title="B",x="",y="HH daily acquisition probability") + 
   theme(axis.text.y=element_text(face="bold",size=10)) + 
   theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
   guides(color=guide_legend(title=""),shape=guide_legend(title="Sampling days")) + 

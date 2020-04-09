@@ -230,15 +230,16 @@ source('~/Rproject/Markov.Model/script/fig3.R')
 dev.off()
 source('~/Rproject/Markov.Model/script/fig4.R')
 
-#plot of carriage characterisation (figure 5)
+#plot of other carriage characterisation (supplementary figure 3)
 dev.off()
 source('~/Rproject/Markov.Model/script/sfig3.R')
 
-#plot of other important epidemiological characterisations of carriage (supplementary figure 3)
+#plot of acquistion rates by household size (supplementary figure 4)
 dev.off()
 source('~/Rproject/Markov.Model/script/sfig4.R')
 
-#plot of sensitivity analysis of # of HIV+ adults in the household on carriagr acquisition (supplementary figure 4)
+#plot of sensitivity analysis (supplementary figure 5)
 dev.off()
 source('~/Rproject/Markov.Model/script/sfig5.R')
+
 

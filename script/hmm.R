@@ -28,6 +28,7 @@ phirst.ms <- subset(subset(phirst.ms, ind_elig_inc=="Yes"), select=c(hh_id,ind_i
 #merge the household-level to individual-level dataset
 phirst.ms <- merge(x=phirst.ms,y=phirst.hh,by="hh_id",all.y=TRUE)
 
+
 #===============INDIVIDUAL-LEVEL DATASET DESCRIPTION
 
 #rename analysis variables
@@ -118,7 +119,7 @@ phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
 phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,ahiv,ahivcat,tx))
 
 #follow-up characteristics of participants (figure 2)
-source('~/Rproject/Markov.Model/script/fig2.R')
+dev.off();source('~/Rproject/Markov.Model/script/fig2.R')
 
 
 #===============hidden Markov modelling of carriage dynamics within houshold and from community
@@ -167,14 +168,15 @@ p.model4 <- msm(state~dys,subject=ind_id,data=phirst.fu,
 #comparing the AIC and BIC of the fitted models 
 AIC(p.model1,p.model2,p.model3,p.model4)
 AIC(p.model1,k=log(length(phirst.fu)));AIC(p.model2,k=log(length(phirst.fu)));AIC(p.model3,k=log(length(phirst.fu)));AIC(p.model4,k=log(length(phirst.fu)))
-save.image()
 
 #run multiple chains to gurantee convergence of the selected model
 j=0.05;k=2.00
 for(i in 1:5){
+  
 matrix.Qc <- rbind(c(0.0,j), c(k,0.0))
 rownames(matrix.Qc) <- c("Clear","Carry")
 colnames(matrix.Qc) <- c("Clear","Carry")
+
 matrix.Ec <- rbind(c(1.0,0.0), c(0.15,0.85))
 colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
 rownames(matrix.Ec) <- c("Clear","Carry")
@@ -208,7 +210,7 @@ phirst.oe$lci.carry=phirst.oe$exp.p.carry/100-(1.96*sqrt(phirst.oe$exp.p.carry/1
 phirst.oe$uci.carry=phirst.oe$exp.p.carry/100+(1.96*sqrt(phirst.oe$exp.p.carry/100*(1-phirst.oe$exp.p.carry/100)/phirst.oe$exp.carry))
 
 #plot of model parameter convergence, and observed and predictions (supplementary figure 1)
-source('~/Rproject/Markov.Model/script/sfig1.R')
+dev.off();source('~/Rproject/Markov.Model/script/sfig1.R')
 
 #viterbi algorithm
 phirst.vi <- viterbi.msm(p.model4)
@@ -219,27 +221,22 @@ phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Clear","Carry")
 phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
 
 #plot of viterbi algorithm (supplementary figure 2)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig2.R')
+dev.off();source('~/Rproject/Markov.Model/script/sfig2.R')
 
 #plot of within household and community acquisition rates and probabilities (figure 3)
-dev.off()
-source('~/Rproject/Markov.Model/script/fig3.R')
+dev.off();source('~/Rproject/Markov.Model/script/fig3.R')
 
 #plot of duration of carriage and carriage clearance probabilities (figure 4)
-dev.off()
-source('~/Rproject/Markov.Model/script/fig4.R')
+dev.off();source('~/Rproject/Markov.Model/script/fig4.R')
 
 #plot of other carriage characterisation (supplementary figure 3)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig3.R')
+dev.off();source('~/Rproject/Markov.Model/script/sfig3.R')
 
 #plot of acquistion rates by household size (supplementary figure 4)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig4.R')
+dev.off();source('~/Rproject/Markov.Model/script/sfig4.R')
 
 #plot of sensitivity analysis (supplementary figure 5)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig5.R')
+dev.off();source('~/Rproject/Markov.Model/script/sfig5.R')
 
-
+#plot of misclassification probabilities (supplementary figure 6)
+dev.off();source('~/Rproject/Markov.Model/script/sfig6.R')

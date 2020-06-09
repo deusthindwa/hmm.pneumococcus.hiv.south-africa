@@ -165,11 +165,11 @@ p.model4 <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-#comparing the AIC and BIC of the fitted models 
+#comparing the AIC or BIC of the fitted models 
 AIC(p.model1,p.model2,p.model3,p.model4)
 AIC(p.model1,k=log(length(phirst.fu)));AIC(p.model2,k=log(length(phirst.fu)));AIC(p.model3,k=log(length(phirst.fu)));AIC(p.model4,k=log(length(phirst.fu)))
 
-#run multiple chains to gurantee convergence of the selected model
+#run multiple chains to assess convergence of the selected model
 j=0.05;k=2.00
 for(i in 1:5){
   
@@ -212,15 +212,13 @@ phirst.oe$uci.carry=phirst.oe$exp.p.carry/100+(1.96*sqrt(phirst.oe$exp.p.carry/1
 #plot of model parameter convergence, and observed and predictions (supplementary figure 1)
 dev.off();source('~/Rproject/Markov.Model/script/sfig1.R')
 
-#viterbi algorithm
+#plot results from Viterbi algorithm (supplementary figure 2)
 phirst.vi <- viterbi.msm(p.model4)
 phirst.vi$fitted <- as.integer(phirst.vi$fitted)
 phirst.vi$probhs1 <- as.data.frame(phirst.vi$pstate)$V1
 phirst.vi$probhs2 <- as.data.frame(phirst.vi$pstate)$V2
 phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Clear","Carry")
 phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
-
-#plot of viterbi algorithm (supplementary figure 2)
 dev.off();source('~/Rproject/Markov.Model/script/sfig2.R')
 
 #plot of within household and community acquisition rates and probabilities (figure 3)

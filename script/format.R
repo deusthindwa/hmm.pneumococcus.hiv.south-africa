@@ -1,7 +1,7 @@
 #Written by Deus Thindwa
 #Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
-#20/9/2019 - 11/3/2020
+#20/9/2019 - 10/6/2020
 
 #rename columns for household acquisition rates
 phirst.es <- rename(phirst.es, c("iid"="Table.1A","age"="Age","hiv"="HIV","hh_hiv"="Household.adult.HIV","carry.est"="Estimate","Lcarry.est"="Lower.bound","Ucarry.est"="Upper.bound"))

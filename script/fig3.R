@@ -3,6 +3,9 @@
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
 #20/9/2019 - 11/3/2020
 
+#hazard ratios for pneumococcal acquisition/clearance rates
+hazard.msm(p.model4,hazard.scale=1,cl=0.95)
+
 #household adult HIV-dependent acquisition rates
 p.modela <- qmatrix.msm(p.model4,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
 p.modelb <- qmatrix.msm(p.model4,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
@@ -56,7 +59,7 @@ B<-ggplot(phirst.es) +
   geom_point(aes(iid,carry.est,color=iid,shape=hh_hiv),size=1.5,position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
   ylim(0.01,0.085) +
-  labs(title="B",x="",y="HH daily acquistion probability") + 
+  labs(title="A",x="",y="Household daily acquistion probability") + 
   theme(axis.text.y=element_text(face="bold",size=10),axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
   guides(color=guide_legend(title=""),shape=guide_legend(title="HH adult HIV+?"),fill=FALSE) +
   theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
@@ -99,11 +102,11 @@ D <- ggplot(phirst.es) +
   geom_point(aes(iid,carry.est,color=iid),shape=8,size=1.5,position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
   ylim(0.01,0.085) +
-  labs(title="D",x="",y="CM daily acquisition probability") + 
+  labs(title="B",x="",y="Community daily acquisition probability") + 
   theme(axis.text.y=element_text(face="bold",size=10)) + 
   theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
   guides(color=guide_legend(title=""),fill=FALSE) +
   theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
 remove(phirst.es,phirst.es0,phirst.es1,p.modela,p.modelb,p.modelc,p.modeld)
-print(ggarrange(A,B,C,D,ncol=4,nrow=1,common.legend=TRUE,legend="bottom"))
+print(ggarrange(B,D,ncol=2,nrow=1,common.legend=TRUE,legend="bottom"))

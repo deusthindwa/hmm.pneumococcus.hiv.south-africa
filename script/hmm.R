@@ -91,7 +91,7 @@ table1(~site+sex+hiv+artv+artr+cd4cat+ahivcat+pcv6wks+pcv14wks+pcv9mth+smoke+alc
 #===============FOLLOW-UP DATASET DESCRIPTION
 
 #subset individual-level dataset that will merge follow-up dataset
-phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,agecat,hiv,artv,ahiv,ahivcat)),!is.na(hiv)),ind_id)
+phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat)),!is.na(hiv)),ind_id)
 
 #subset antibiotic dataset that will merge follow-up dataset
 phirst.ax <- arrange(rename(subset(phirst.ax,select=c(finalid,antibiotic)),c("finalid"="visit_id","antibiotic"="abx")),visit_id)
@@ -109,23 +109,23 @@ phirst.fu <- arrange(merge(x=phirst.fu,y=phirst.ms,by="ind_id",all.y=TRUE),visit
 #tidying the follow-up dataset
 phirst.fu$state <- if_else(phirst.fu$state==1,2L,if_else(phirst.fu$state==0,1L,NULL));phirst.fu$state[is.na(phirst.fu$state)]<-9L
 phirst.fu <- mutate(phirst.fu,hh_id=substr(visit_id,1,4),visit_no=as.integer(substr(visit_id,10,12)))
-phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,ahiv,ahivcat)
+phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat)
 
 #define community or household acquisition source
 phirst.tx <- arrange(subset(subset(phirst.fu,select=c(hh_id,visit_no,state)),state !=9),visit_no)
 phirst.tx$state <- if_else(phirst.tx$state==1,0L,1L)
 phirst.tx <- setDT(phirst.tx)[,list(tx=sum(state)),by=.(hh_id,visit_no)]
 phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
-phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,ahiv,ahivcat,tx))
+phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat,tx))
 
-#follow-up characteristics of participants (figure 2)
-dev.off();source('~/Rproject/Markov.Model/script/fig2.R')
+#follow-up characteristics of carriage among participants (figure 2)
+source('~/Rproject/Markov.Model/script/fig2.R')
 
 
 #===============hidden Markov modelling of carriage dynamics within houshold and from community
 
 #show transition frequency
-phirst.fu$abx[is.na(phirst.fu$abx)] <- phirst.fu$artv[is.na(phirst.fu$artv)] <- "No"
+phirst.fu$abx[is.na(phirst.fu$abx)] <- phirst.fu$artv[is.na(phirst.fu$artv)] <- phirst.fu$artr[is.na(phirst.fu$artr)] <- "No"
 phirst.fu$ind_id <- substr(phirst.fu$visit_id,1,8)
 phirst.fu <- arrange(phirst.fu,visit_id)
 statetable.msm(state,ind_id,data=phirst.fu)
@@ -210,7 +210,8 @@ phirst.oe$lci.carry=phirst.oe$exp.p.carry/100-(1.96*sqrt(phirst.oe$exp.p.carry/1
 phirst.oe$uci.carry=phirst.oe$exp.p.carry/100+(1.96*sqrt(phirst.oe$exp.p.carry/100*(1-phirst.oe$exp.p.carry/100)/phirst.oe$exp.carry))
 
 #plot of model parameter convergence, and observed and predictions (supplementary figure 1)
-dev.off();source('~/Rproject/Markov.Model/script/sfig1.R')
+dev.off()
+source('~/Rproject/Markov.Model/script/sfig1.R')
 
 #plot results from Viterbi algorithm (supplementary figure 2)
 phirst.vi <- viterbi.msm(p.model4)
@@ -219,22 +220,21 @@ phirst.vi$probhs1 <- as.data.frame(phirst.vi$pstate)$V1
 phirst.vi$probhs2 <- as.data.frame(phirst.vi$pstate)$V2
 phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Clear","Carry")
 phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
-dev.off();source('~/Rproject/Markov.Model/script/sfig2.R')
+dev.off()
+source('~/Rproject/Markov.Model/script/sfig2.R')
 
 #plot of within household and community acquisition rates and probabilities (figure 3)
-dev.off();source('~/Rproject/Markov.Model/script/fig3.R')
+dev.off()
+source('~/Rproject/Markov.Model/script/fig3.R')
 
 #plot of duration of carriage and carriage clearance probabilities (figure 4)
-dev.off();source('~/Rproject/Markov.Model/script/fig4.R')
+dev.off()
+source('~/Rproject/Markov.Model/script/fig4.R')
 
-#plot of other carriage characterisation (supplementary figure 3)
-dev.off();source('~/Rproject/Markov.Model/script/sfig3.R')
+##plot of sensitivity analysis of # of adults HH HIV+ & sampling times (supplementary figure 3)
+dev.off()
+source('~/Rproject/Markov.Model/script/sfig3.R')
 
 #plot of acquistion rates by household size (supplementary figure 4)
-dev.off();source('~/Rproject/Markov.Model/script/sfig4.R')
-
-#plot of sensitivity analysis (supplementary figure 5)
-dev.off();source('~/Rproject/Markov.Model/script/sfig5.R')
-
-#plot of misclassification probabilities (supplementary figure 6)
-dev.off();source('~/Rproject/Markov.Model/script/sfig6.R')
+dev.off()
+source('~/Rproject/Markov.Model/script/sfig4.R')

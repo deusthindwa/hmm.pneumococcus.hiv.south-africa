@@ -4,8 +4,8 @@
 #20/9/2019 - 11/3/2020
 
 #refit the hidden Markov model with # of adult HIV+ in the household as covariate
-phirst.hs <- subset(subset(phirst.fu,select=c(ind_id,dys,state,obst,agecat,hiv,tx,ahiv)),ahiv !=0)
-phirst.hs$ahiv <- as.factor(if_else(phirst.hs$ahiv==1,"One",if_else(phirst.hs$ahiv==2,"Two",if_else(phirst.hs$ahiv==3,"Three",if_else(phirst.hs$ahiv==4,"Four","Five")))))
+phirst.hs <- subset(phirst.fu,select=c(ind_id,dys,state,obst,agecat,hiv,tx,ahiv))
+phirst.hs$ahiv <- as.factor(if_else(phirst.hs$ahiv==0,"Zero",if_else(phirst.hs$ahiv==1,"One",if_else(phirst.hs$ahiv==2,"Two",if_else(phirst.hs$ahiv==3,"Three",if_else(phirst.hs$ahiv==4,"Four","Five"))))))
 
 #initiate transition intensity matrix Q
 matrix.Q <- rbind(c(0.0,0.9),c(0.9,0.0))
@@ -25,6 +25,14 @@ p.snstvty <- msm(state~dys,subject=ind_id,data=phirst.hs,
               opt.method="bobyqa", control=list(maxfun=100000))
 
 #compute the acquisition rates by # of adult HIV+
+p.modelu <- qmatrix.msm(p.snstvty,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahiv="Zero"),ci="normal",cl=0.95)
+p.modelv <- qmatrix.msm(p.snstvty,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahiv="Zero"),ci="normal",cl=0.95)
+p.modelw <- qmatrix.msm(p.snstvty,covariates=list(hiv="Neg",agecat="Adult",tx="hhtx",ahiv="Zero"),ci="normal",cl=0.95)
+phirst.es5 <- data.frame("iid"=c("HIV+ Child","HIV- Child","HIV- Adult"),"age"=c("Child","Child","Adult"), "hiv"=c("HIV+","HIV-","HIV-"),"status"=c("0","0","0"))
+phirst.es5$carry.est <- c(p.modelu$estimates[1,2],p.modelv$estimates[1,2],p.modelw$estimates[1,2])
+phirst.es5$Lcarry.est <- c(p.modelu$L[1,2],p.modelv$L[1,2],p.modelw$L[1,2])
+phirst.es5$Ucarry.est <- c(p.modelu$U[1,2],p.modelv$U[1,2],p.modelw$U[1,2])
+
 p.modela <- qmatrix.msm(p.snstvty,covariates=list(hiv="Pos",agecat="Child",tx="hhtx",ahiv="One"),ci="normal",cl=0.95)
 p.modelb <- qmatrix.msm(p.snstvty,covariates=list(hiv="Neg",agecat="Child",tx="hhtx",ahiv="One"),ci="normal",cl=0.95)
 p.modelc <- qmatrix.msm(p.snstvty,covariates=list(hiv="Pos",agecat="Adult",tx="hhtx",ahiv="One"),ci="normal",cl=0.95)
@@ -70,7 +78,7 @@ phirst.es4$carry.est <- c(p.modelq$estimates[1,2],p.modelr$estimates[1,2],p.mode
 phirst.es4$Lcarry.est <- c(p.modelq$L[1,2],p.modelr$L[1,2],p.models$L[1,2],p.modelt$L[1,2])
 phirst.es4$Ucarry.est <- c(p.modelq$U[1,2],p.modelr$U[1,2],p.models$U[1,2],p.modelt$U[1,2])
 
-phirst.es <- rbind(phirst.es0,phirst.es1,phirst.es2,phirst.es3,phirst.es4)
+phirst.es <- rbind(phirst.es0,phirst.es1,phirst.es2,phirst.es3,phirst.es4,phirst.es5)
 remove(phirst.es0,phirst.es1,phirst.es2,phirst.es3,phirst.es4)
 remove(p.modela,p.modelb,p.modelc,p.modeld,p.modele,p.modelf,p.modelg,p.modelh,p.modeli,p.modelj,p.modelk,p.modell,p.modelm,p.modeln,p.modelo,p.modelp,p.modelq,p.modelr,p.models,p.modelt)
 
@@ -147,3 +155,4 @@ B <- ggplot(phirst.es) +
   theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
 print(ggarrange(A,B,ncol=2,common.legend=FALSE,legend="right"))
+

@@ -4,7 +4,6 @@
 #20/9/2019 - 11/3/2020
 
 #plots from viterbi algorithm
-dev.off()
 A <-ggplot(subset(phirst.vi,subject=="A001-001")) +
   geom_point(aes(time,observed, color=observed), size=2.4, shape=20) + 
   theme_bw() + 
@@ -24,7 +23,7 @@ B <-ggplot(subset(phirst.vi,subject=="A001-001")) +
 C <-ggplot(subset(phirst.vi,subject=="A001-001")) +
   geom_line(aes(time,probhs2),color='gray50',size=0.6) +
   theme_bw() + 
-  labs(title="",x="Days",y="Viterbi probability") +
+  labs(title="",x="Days",y="Probability") +
   scale_y_continuous(labels=percent) +
   theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
   theme(plot.margin=unit(c(-5,5.5,5.5,5.5),"pt"))

@@ -35,7 +35,9 @@ phirst.ms <- merge(x=phirst.ms,y=phirst.hh,by="hh_id",all.y=TRUE)
 phirst.ms <- rename(phirst.ms, c("age_at_consent"="age","hiv_status"="hiv","arv_current_vl"="artv","arv_current_self"="artr","anysmokenow"="smoke","hh_mems_11swabs"="hhsize"))
 
 #age category
-phirst.ms$agecat <- as.factor(if_else(phirst.ms$age<5,"Child",if_else(phirst.ms$age>=5,"Adult",NULL)))
+phirst.ms$agecat <- as.factor(if_else(phirst.ms$age<5,"Child",
+                                      if_else(phirst.ms$age>=5 & phirst.ms$age<15,"older child",
+                                                                      if_else(phirst.ms$age>=15,"adult",NULL))))
 
 #study site
 phirst.ms$site <- as.factor(phirst.ms$site)

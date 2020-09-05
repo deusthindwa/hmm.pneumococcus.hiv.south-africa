@@ -81,7 +81,7 @@ phirst.d5$d5group <- if_else(phirst.d5$agecat=="Younger child" & phirst.d5$artv=
                      if_else(phirst.d5$agecat=="Adult" & phirst.d5$artv=="No","Adult HIV+\nno ART",if_else(phirst.d5$agecat=="Adult" & phirst.d5$artv=="Yes","Adult HIV+\nART",NULL))))))
 
 E<-ggplot(subset(phirst.d5, npdensity !=0),aes(d5group,npdensity,group=d5group)) + 
-  geom_boxplot(outlier.shape=16, outlier.size=2, notch=TRUE, size=1) +
+  geom_boxplot(outlier.shape=16, outlier.size=2, notch=TRUE, size=1, colour="gray50") +
   stat_summary(fun=mean, colour="red", geom="point", shape=18, size=3) +
   scale_y_continuous(trans=log10_trans(),breaks=trans_breaks("log10", function(x) 10^x)) +
   labs(title="E",x="",y="Carriage density (GE/ml)") + 

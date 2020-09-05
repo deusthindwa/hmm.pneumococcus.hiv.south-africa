@@ -120,7 +120,7 @@ phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
 phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat,tx))
 
 #follow-up characteristics of carriage among participants (figure 2)
-source('~/Rproject/Markov.Model/script/fig2.R')
+source('~/Rproject/Markov.Model/script/fig2_carriage_dynamics.R')
 
 
 #===============hidden Markov modelling of carriage dynamics within houshold and from community

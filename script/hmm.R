@@ -8,7 +8,7 @@
 
 phirst.packages <- c("tidyverse","plyr","dplyr","msm","timetk","gridExtra","curl","minqa","table1",
                     "lubridate","magrittr","data.table","parallel","foreign","readstata13","ggpubr",
-                    "wakefield","zoo","janitor","rethinking","scales","msmtools","nlme")
+                    "wakefield","zoo","janitor","rethinking","scales","msmtools","nlme","patchwork")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #load all phirst datasets (household-level, individual-level, follow-up & antibiotic use)
@@ -35,9 +35,7 @@ phirst.ms <- merge(x=phirst.ms,y=phirst.hh,by="hh_id",all.y=TRUE)
 phirst.ms <- rename(phirst.ms, c("age_at_consent"="age","hiv_status"="hiv","arv_current_vl"="artv","arv_current_self"="artr","anysmokenow"="smoke","hh_mems_11swabs"="hhsize"))
 
 #age category
-phirst.ms$agecat <- as.factor(if_else(phirst.ms$age<5,"Child",
-                                      if_else(phirst.ms$age>=5 & phirst.ms$age<15,"older child",
-                                                                      if_else(phirst.ms$age>=15,"adult",NULL))))
+phirst.ms$agecat <- as.factor(if_else(phirst.ms$age<5,"Younger child",if_else(phirst.ms$age>=5 & phirst.ms$age<18,"Older child",if_else(phirst.ms$age>=18,"Adult",NULL))))
 
 #study site
 phirst.ms$site <- as.factor(phirst.ms$site)
@@ -57,12 +55,13 @@ phirst.ms$cd4 <- rowMeans(cbind(phirst.ms$cd4_count_1,phirst.ms$cd4_count_2,phir
                  phirst.ms$cd4_count_5,phirst.ms$cd4_count_6,phirst.ms$cd4_count_7,phirst.ms$cd4_count_8),na.rm=TRUE)
 phirst.ms$cd4 <- if_else(phirst.ms$hiv=="Pos",as.numeric(phirst.ms$cd4),NULL)
 phirst.ms$cd4cat <- if_else(phirst.ms$cd4<=350 & phirst.ms$agecat=="Adult","Low",if_else(phirst.ms$cd4>350 & phirst.ms$agecat=="Adult","High",
-                    if_else(phirst.ms$cd4<=750 & phirst.ms$agecat=="Child","Low",if_else(phirst.ms$cd4>750 & phirst.ms$agecat=="Child","High",NULL))))
+                    if_else(phirst.ms$cd4<=750 & phirst.ms$agecat=="Younger child","Low",if_else(phirst.ms$cd4>750 & phirst.ms$agecat=="Younger child","High",
+                    if_else(phirst.ms$cd4<=750 & phirst.ms$agecat=="Older child","Low",if_else(phirst.ms$cd4>750 & phirst.ms$agecat=="Older child","High",NULL))))))
 
 #pcv status
-phirst.ms$pcv6wks <- as.factor(if_else(phirst.ms$pcv6wks=="Yes" & phirst.ms$agecat=="Child","Yes",if_else(phirst.ms$pcv6wks=="No" & phirst.ms$agecat=="Child","No",NULL)))
-phirst.ms$pcv14wks <- as.factor(if_else(phirst.ms$pcv14wks=="Yes" & phirst.ms$agecat=="Child","Yes",if_else(phirst.ms$pcv14wks=="No" & phirst.ms$agecat=="Child","No",NULL)))
-phirst.ms$pcv9mth <- as.factor(if_else(phirst.ms$pcv9mth=="Yes" & phirst.ms$agecat=="Child","Yes",if_else(phirst.ms$pcv9mth=="No" & phirst.ms$agecat=="Child","No",NULL)))
+phirst.ms$pcv6wks <- as.factor(if_else(phirst.ms$pcv6wks=="Yes" & phirst.ms$agecat=="Younger child","Yes",if_else(phirst.ms$pcv6wks=="No" & phirst.ms$agecat=="Younger child","No",NULL)))
+phirst.ms$pcv14wks <- as.factor(if_else(phirst.ms$pcv14wks=="Yes" & phirst.ms$agecat=="Younger child","Yes",if_else(phirst.ms$pcv14wks=="No" & phirst.ms$agecat=="Younger child","No",NULL)))
+phirst.ms$pcv9mth <- as.factor(if_else(phirst.ms$pcv9mth=="Yes" & phirst.ms$agecat=="Younger child","Yes",if_else(phirst.ms$pcv9mth=="No" & phirst.ms$agecat=="Younger child","No",NULL)))
 
 #alcohol consumption
 phirst.ms$alcohol <- as.factor(if_else(phirst.ms$alcohol==1 & phirst.ms$agecat=="Adult","Yes",if_else(phirst.ms$alcohol==0 & phirst.ms$agecat=="Adult","No",NULL)))
@@ -74,7 +73,7 @@ phirst.ms$smoke <- as.factor(if_else(phirst.ms$smoke==1 & phirst.ms$agecat=="Adu
 phirst.ms$hhsize <- as.integer(phirst.ms$hhsize)
 
 #number of hiv+ adults in the household
-phirst.hi <- subset(subset(subset(phirst.ms,select=c(hh_id,agecat,hiv)),agecat !="Child"),!is.na(hiv))
+phirst.hi <- subset(subset(subset(phirst.ms,select=c(hh_id,agecat,hiv)),agecat =="Adult"),!is.na(hiv))
 phirst.hi$ahiv <- if_else(phirst.hi$age=="Adult" & phirst.hi$hiv=="Pos",1L,if_else(phirst.hi$age=="Adult" & phirst.hi$hiv=="Neg",0L,NULL))
 phirst.hi <- setDT(phirst.hi)[,list(ahiv=sum(ahiv)),by=.(hh_id)]
 phirst.hi$ahivcat <- as.factor(if_else(phirst.hi$ahiv==0,"No","Yes"))

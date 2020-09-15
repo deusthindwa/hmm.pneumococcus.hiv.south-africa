@@ -71,6 +71,7 @@ phirst.ms$smoke <- as.factor(if_else(phirst.ms$smoke==1 & phirst.ms$agecat=="Adu
 
 #household size
 phirst.ms$hhsize <- as.integer(phirst.ms$hhsize)
+phirst.ms$hhsizecat <- as.factor(if_else(phirst.ms$hhsize<6,"<6",if_else(phirst.ms$hhsize>=6 & phirst.ms$hhsize<=10,"6-10","11+")))
 
 #number of hiv+ adults in the household
 phirst.hi <- subset(subset(subset(phirst.ms,select=c(hh_id,agecat,hiv)),agecat =="Adult"),!is.na(hiv))
@@ -80,7 +81,7 @@ phirst.hi$ahivcat <- as.factor(if_else(phirst.hi$ahiv==0,"No","Yes"))
 
 #final individual-level dataset
 phirst.ms <- merge(x=phirst.ms,y=phirst.hi,by="hh_id",all.x=TRUE)
-phirst.ms <- subset(phirst.ms,select=c(hh_id,ind_id,hhsize,age,agecat,site,sex,hiv,artv,artr,cd4,cd4cat,pcv6wks,pcv14wks,pcv9mth,alcohol,smoke,ahiv,ahivcat))
+phirst.ms <- subset(phirst.ms,select=c(hh_id,ind_id,hhsize,hhsizecat,age,agecat,site,sex,hiv,artv,artr,cd4,cd4cat,pcv6wks,pcv14wks,pcv9mth,alcohol,smoke,ahiv,ahivcat))
 
 #baseline demographic characteristics (Table 1)
 table1(~age+cd4|agecat,data=phirst.ms,topclass="Rtable1-grid Rtable1-shade Rtable1-times")
@@ -92,7 +93,7 @@ table1(~site+sex+hiv+artv+artr+cd4cat+ahivcat+pcv6wks+pcv14wks+pcv9mth+smoke+alc
 #===============FOLLOW-UP DATASET DESCRIPTION
 
 #subset individual-level dataset that will merge follow-up dataset
-phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat)),!is.na(hiv)),ind_id)
+phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,hhsizecat,age,agecat,hiv,artv,artr,ahiv,ahivcat)),!is.na(hiv)),ind_id)
 
 #subset antibiotic dataset that will merge follow-up dataset
 phirst.ax <- arrange(rename(subset(phirst.ax,select=c(finalid,antibiotic)),c("finalid"="visit_id","antibiotic"="abx")),visit_id)
@@ -110,20 +111,20 @@ phirst.fu <- arrange(merge(x=phirst.fu,y=phirst.ms,by="ind_id",all.y=TRUE),visit
 #tidying the follow-up dataset
 phirst.fu$state <- if_else(phirst.fu$state==1,2L,if_else(phirst.fu$state==0,1L,NULL));phirst.fu$state[is.na(phirst.fu$state)]<-9L
 phirst.fu <- mutate(phirst.fu,hh_id=substr(visit_id,1,4),visit_no=as.integer(substr(visit_id,10,12)))
-phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat)
+phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,agecat,hiv,artv,artr,ahiv,ahivcat)
 
 #define community or household acquisition source
 phirst.tx <- arrange(subset(subset(phirst.fu,select=c(hh_id,visit_no,state)),state !=9),visit_no)
 phirst.tx$state <- if_else(phirst.tx$state==1,0L,1L)
 phirst.tx <- setDT(phirst.tx)[,list(tx=sum(state)),by=.(hh_id,visit_no)]
 phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
-phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,agecat,hiv,artv,artr,ahiv,ahivcat,tx))
+phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,agecat,hiv,artv,artr,ahiv,ahivcat,tx))
 
-#follow-up characteristics of carriage among participants (figure 2)
+#follow-up caarriage characteristics of participants (figure 2)
 source('~/Rproject/Markov.Model/script/fig2_carriage_dynamics.R')
 
 
-#===============hidden Markov modelling of carriage dynamics within houshold and from community
+#===============HIDDEN MARKOV MODEL WITH MISCLASSIFICATIONS
 
 #show transition frequency
 phirst.fu$abx[is.na(phirst.fu$abx)] <- phirst.fu$artv[is.na(phirst.fu$artv)] <- phirst.fu$artr[is.na(phirst.fu$artr)] <- "No"
@@ -144,98 +145,45 @@ rownames(matrix.E) <- c("Clear","Carry")
 #fit hidden Markov models with misclassifications
 p.model1 <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 qmatrix=matrix.Q, ematrix=matrix.E,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx,"2-1"=~agecat+hiv),
+                covariates=list("1-2"=~agecat+hiv+ahivcat+tx+hhsizecat,"2-1"=~agecat+hiv),
                 censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
 p.model2 <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 qmatrix=matrix.Q, ematrix=matrix.E,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx,"2-1"=~agecat+hiv+abx),
+                covariates=list("1-2"=~agecat+hiv+ahivcat+tx+hhsizecat,"2-1"=~agecat+hiv+abx),
                 censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
 p.model3 <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 qmatrix=matrix.Q, ematrix=matrix.E,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx,"2-1"=~agecat+hiv+artv),
+                covariates=list("1-2"=~agecat+hiv+ahivcat+tx+hhsizecat,"2-1"=~agecat+hiv+artv),
                 censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
 p.model4 <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 qmatrix=matrix.Q, ematrix=matrix.E,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx,"2-1"=~agecat+hiv+abx+artv),
+                covariates=list("1-2"=~agecat+hiv+ahivcat+tx+hhsizecat,"2-1"=~agecat+hiv+abx+artv),
                 censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 
-#comparing the AIC or BIC of the fitted models 
+#comparing the AIC scores of the fitted models 
 AIC(p.model1,p.model2,p.model3,p.model4)
-AIC(p.model1,k=log(length(phirst.fu)));AIC(p.model2,k=log(length(phirst.fu)));AIC(p.model3,k=log(length(phirst.fu)));AIC(p.model4,k=log(length(phirst.fu)))
 
-#run multiple chains to assess convergence of the selected model
-j=0.05;k=2.00
-for(i in 1:5){
-  
-matrix.Qc <- rbind(c(0.0,j), c(k,0.0))
-rownames(matrix.Qc) <- c("Clear","Carry")
-colnames(matrix.Qc) <- c("Clear","Carry")
+#plot within household and community acquisition probabilities (figure 3)
+source('~/Rproject/Markov.Model/script/fig3_carriage_acquisition.R')
 
-matrix.Ec <- rbind(c(1.0,0.0), c(0.15,0.85))
-colnames(matrix.Ec) <- c("SwabNeg","SwabPos")
-rownames(matrix.Ec) <- c("Clear","Carry")
+#plot duration of carriage (and by ART, ABX) and carriage clearance probabilities (figure 4)
+source('~/Rproject/Markov.Model/script/fig4_carriaage_duration.R')
 
-sink("~/Rproject/Markov.Model.Resources/data/convergence.txt",append=TRUE)
-p.convrg <- msm(state~dys,subject=ind_id,data=phirst.fu,
-                qmatrix=matrix.Qc, ematrix=matrix.Ec,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx,"2-1"=~agecat+hiv+abx+artv),
-                censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
-                control=list(maxit=200000,trace=1,REPORT=1))
-sink()
-j=j+0.1;k=k-0.4
-}
-
-#observed versus predicted prevalence of selected model
-p.obsexp <- msm(state~dys,subject=ind_id,data=phirst.fu,
-                qmatrix=matrix.Q,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx,"2-1"=~agecat+hiv+abx+artv),
-                censor=9, censor.states=c(1,2), est.initprobs=T,
-                opt.method="bobyqa", control=list(maxfun=100000))
-
-phirst.oe <- tk_tbl(prevalence.msm(p.obsexp,times=seq(0,289,14)),preserve_index=TRUE,rename_index="Time")
-phirst.oe <- subset(phirst.oe,select=c(Time, Observed.State.1, Observed.State.2, Observed.percentages.State.1, Observed.percentages.State.2,
-                                  Expected.Clear,Expected.Carry,Expected.percentages.Clear,Expected.percentages.Carry))
-phirst.oe <- rename(phirst.oe, c("Observed.State.1"="obs.clear", "Observed.State.2"="obs.carry","Observed.percentages.State.1"="obs.p.clear","Observed.percentages.State.2"="obs.p.carry",
-                           "Expected.Clear"="exp.clear","Expected.Carry"="exp.carry","Expected.percentages.Clear"="exp.p.clear","Expected.percentages.Carry"="exp.p.carry"))
-
-phirst.oe$lci.clear=phirst.oe$exp.p.clear/100-(1.96*sqrt(phirst.oe$exp.p.clear/100*(1-phirst.oe$exp.p.clear/100)/phirst.oe$exp.clear)) 
-phirst.oe$uci.clear=phirst.oe$exp.p.clear/100+(1.96*sqrt(phirst.oe$exp.p.clear/100*(1-phirst.oe$exp.p.clear/100)/phirst.oe$exp.clear))
-phirst.oe$lci.carry=phirst.oe$exp.p.carry/100-(1.96*sqrt(phirst.oe$exp.p.carry/100*(1-phirst.oe$exp.p.carry/100)/phirst.oe$exp.carry)) 
-phirst.oe$uci.carry=phirst.oe$exp.p.carry/100+(1.96*sqrt(phirst.oe$exp.p.carry/100*(1-phirst.oe$exp.p.carry/100)/phirst.oe$exp.carry))
-
-#plot of model parameter convergence, and observed and predictions (supplementary figure 1)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig1.R')
+#plot model parameter convergence, and observed and predictions (supplementary figure 1)
+source('~/Rproject/Markov.Model/script/sfig1_convergence.R')
 
 #plot results from Viterbi algorithm (supplementary figure 2)
-phirst.vi <- viterbi.msm(p.model4)
-phirst.vi$fitted <- as.integer(phirst.vi$fitted)
-phirst.vi$probhs1 <- as.data.frame(phirst.vi$pstate)$V1
-phirst.vi$probhs2 <- as.data.frame(phirst.vi$pstate)$V2
-phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Clear","Carry")
-phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Clear","Carry")
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig2.R')
+source('~/Rproject/Markov.Model/script/sfig2_viterbi.R')
 
-#plot of within household and community acquisition rates and probabilities (figure 3)
-dev.off()
-source('~/Rproject/Markov.Model/script/fig3.R')
+##plot sensitivity analysis of # of HIV+ adults in a household & sampling times (supplementary figure 3)
+source('~/Rproject/Markov.Model/script/sfig3_sensitivity.R')
 
-#plot of duration of carriage and carriage clearance probabilities (figure 4)
-dev.off()
-source('~/Rproject/Markov.Model/script/fig4.R')
-
-##plot of sensitivity analysis of # of adults HH HIV+ & sampling times (supplementary figure 3)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig3.R')
-
-#plot of acquistion rates by household size (supplementary figure 4)
-dev.off()
-source('~/Rproject/Markov.Model/script/sfig4.R')
+#plotacquistion probabilities by household size (supplementary figure 4)
+source('~/Rproject/Markov.Model/script/sfig4_householdsize.R')

@@ -3,6 +3,15 @@
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
 #20/9/2019 - 10/6/2020 
 
+#decode hidden states through Virtebi algorithm 
+phirst.vi <- viterbi.msm(p.model4)
+phirst.vi$fitted <- as.integer(phirst.vi$fitted)
+phirst.vi$probhs1 <- as.data.frame(phirst.vi$pstate)$V1
+phirst.vi$probhs2 <- as.data.frame(phirst.vi$pstate)$V2
+phirst.vi$observed <- if_else(phirst.vi$observed==1L,"Susceptible","Infected")
+phirst.vi$fitted <- if_else(phirst.vi$fitted==1L,"Susceptible","Infected")
+dev.off()
+
 #plots from viterbi algorithm
 A <-ggplot(subset(phirst.vi,subject=="A001-001")) +
   geom_point(aes(time,observed, color=observed), size=2.4, shape=20) + 
@@ -15,7 +24,7 @@ A <-ggplot(subset(phirst.vi,subject=="A001-001")) +
 B <-ggplot(subset(phirst.vi,subject=="A001-001")) + 
   geom_point(aes(time,fitted,color=fitted), size=2.4, shape=20) + 
   theme_bw() + 
-  labs(title="",x="",y="Viterbi states") + 
+  labs(title="",x="",y="Hidden states") + 
   theme(axis.text.y=element_text(face="bold",size=10),axis.text.x=element_blank()) +
   theme(legend.position="none") +
   theme(plot.margin=unit(c(-5.5,5.5,-5.5,5.5),"pt"))
@@ -52,5 +61,4 @@ F <-ggplot(subset(phirst.vi,subject=="A234-004")) +
   theme(axis.text.x=element_text(face="bold",size=10),axis.text.y=element_blank()) +
   theme(plot.margin=unit(c(-5,15,5.5,-5.5),"pt"))
 
-grid.arrange(A,D,B,E,C,F,nrow=3,ncol=2)
-remove(A,B,C,D,E)
+(A + D) / (B + E) / (C + F) 

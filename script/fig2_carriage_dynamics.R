@@ -6,8 +6,8 @@
 #show swabbing visit vs carriage prevalence
 phirst.d1 <- subset(subset(phirst.fu,select=c(visit_id,state,agecat,hiv)),state !=9)
 phirst.d1$visit_id <- as.integer(substr(phirst.d1$visit_id,10,12))
-phirst.d2 <- phirst.d1 %>% group_by(visit_id,agecat,hiv) %>% tally(state==2)
-phirst.d1 <- phirst.d1 %>% group_by(visit_id,agecat,hiv) %>% tally()
+phirst.d2 <- phirst.d1 %>% group_by(agecat,hiv,visit_id) %>% tally(state==2)
+phirst.d1 <- phirst.d1 %>% group_by(agecat,hiv,visit_id) %>% tally()
 phirst.d1$nPos <- phirst.d2$n; phirst.d1$prev <- phirst.d1$nPos/phirst.d1$n; remove(phirst.d2)
 phirst.d1$d1group <- if_else(phirst.d1$agecat=="Younger child" & phirst.d1$hiv=="Neg","Younger child HIV-",if_else(phirst.d1$agecat=="Younger child" & phirst.d1$hiv=="Pos","Younger child HIV+",
                      if_else(phirst.d1$agecat=="Older child" & phirst.d1$hiv=="Neg","Older child HIV-",if_else(phirst.d1$agecat=="Older child" & phirst.d1$hiv=="Pos","Older child HIV+",

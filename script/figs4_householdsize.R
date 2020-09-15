@@ -3,22 +3,30 @@
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
 #20/9/2019 - 10/6/2020
 
-#age distribution of the population
-A <- ggplot(phirst.fu,aes(x=age,color=hiv)) +
-  geom_histogram(fill="white",binwidth=1,position=position_dodge(width=1)) +
+#age distribution of the population by overall and household size 
+A <- ggplot(phirst.ms,aes(x=age,color=hiv)) +
+  geom_histogram(fill="white",binwidth=1,position=position_dodge(width=0.5)) +
   theme_bw() + 
+  scale_color_manual(labels=c("Negative","Positive"),values=c("blue","red")) +
   labs(title="A",x="Age (years)",y="Frequency") + 
   scale_x_continuous(breaks = seq(0, 100, 10)) +
+  scale_y_continuous(breaks = seq(0, 70, 10)) +
+  theme(legend.position = c(0.7,0.5)) +
   theme(axis.text.y=element_text(face="bold",size=10),axis.text.x=element_text(face="bold",size=10)) + 
-  guides(color=guide_legend(title=""),shape=guide_legend(title="Household size")) + 
-  theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
-
-#rerun model only for acquisition
-p.hhsize <- msm(state~dys,subject=ind_id,data=phirst.fu,
-                qmatrix=matrix.Q, ematrix=matrix.E,
-                covariates=list("1-2"=~agecat+hiv+ahivcat+tx+hhsizecat),
-                censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
-                opt.method="bobyqa", control=list(maxfun=100000))
+  guides(color=guide_legend(title="HIV status")) +
+  theme(legend.text=element_text(size=10),legend.title=element_text(face="bold",size=10)) 
+  
+B <- ggplot(phirst.ms,aes(x=hhsize,color=hiv)) +
+  geom_histogram(fill="white",binwidth=1,position=position_dodge(width=0.5)) +
+  theme_bw() + 
+  scale_color_manual(labels=c("Negative","Positive"),values=c("blue","red")) +
+  labs(title="B",x="Household size",y="Frequency") + 
+  scale_x_continuous(breaks = seq(0, 20, 2)) +
+  scale_y_continuous(breaks = seq(0, 350, 50)) +
+  theme(legend.position = c(0.7,0.5)) +
+  theme(axis.text.y=element_text(face="bold",size=10),axis.text.x=element_text(face="bold",size=10)) + 
+  guides(color=guide_legend(title="HIV status")) + 
+  theme(legend.text=element_text(size=10),legend.title=element_text(face="bold",size=10))
 
 #compute the acquisition probabilities by household size
 p.modela <- pmatrix.msm(p.model4,t=1,covariates=list(hiv="Pos",agecat="Younger child",tx="hhtx",hhsizecat="<6"),ci="normal",cl=0.95)
@@ -74,14 +82,14 @@ phirst.es2$Ucarry.est <- c(p.modela$U[1,2],p.modelb$U[1,2],p.modelc$U[1,2],p.mod
 
 phirst.es <- rbind(phirst.es0,phirst.es1,phirst.es2)
 
-B <- ggplot(phirst.es) +
+C <- ggplot(phirst.es) +
   geom_errorbar(aes(iid,color=iid,ymin=Lcarry.est,ymax=Ucarry.est,shape=status),width=0.1,size=0.5,position=position_dodge(width=0.5)) +
   geom_point(aes(iid,carry.est,color=iid,shape=status),size=1.5,position=position_dodge(width=0.5),stat="identity") +
   theme_bw() + 
-  labs(title="B",x="",y="Household daily acquisition probability") + 
+  labs(title="C",x="",y="Household daily acquisition probability") + 
   theme(axis.text.y=element_text(face="bold",size=10)) + 
   theme(axis.title.x=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank()) + 
   guides(color=guide_legend(title=""),shape=guide_legend(title="Household size")) + 
   theme(legend.text=element_text(size=10),legend.position="right",legend.title=element_text(face="bold",size=10))
 
-A + B
+A + B + C

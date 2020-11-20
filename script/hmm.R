@@ -8,14 +8,14 @@
 
 phirst.packages <- c("tidyverse","plyr","dplyr","msm","timetk","gridExtra","curl","minqa","table1",
                     "lubridate","magrittr","data.table","parallel","foreign","readstata13","ggpubr",
-                    "wakefield","zoo","janitor","rethinking","scales","msmtools","nlme","patchwork")
+                    "wakefield","zoo","janitor","rethinking","scales","msmtools","FSA","nlme","patchwork")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #load all phirst datasets (household-level, individual-level, follow-up & antibiotic use)
-phirst.hh <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_household.dta",generate.factors=T)
-phirst.ms <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_master2.dta",generate.factors=T)
-phirst.fu <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_follow-up1.dta",generate.factors=T)
-phirst.ax <- read.dta13("~/Rproject/Markov.Model.Resources/data/phirst_follow-up2.dta",generate.factors=T)
+phirst.hh <- read.dta13("~/Rproject/Markov.Model/data/phirst_household.dta",generate.factors=T)
+phirst.ms <- read.dta13("~/Rproject/Markov.Model/data/phirst_master2.dta",generate.factors=T)
+phirst.fu <- read.dta13("~/Rproject/Markov.Model/data/phirst_follow-up1.dta",generate.factors=T)
+phirst.ax <- read.dta13("~/Rproject/Markov.Model/data/phirst_follow-up2.dta",generate.factors=T)
 
 #subset to get required variables in household-level dataset
 phirst.hh <- subset(subset(phirst.hh, is.na(reason_hh_not_inc)),select=c(hh_id,hh_mems_11swabs))
@@ -75,13 +75,27 @@ phirst.ms$hhsizecat <- as.factor(if_else(phirst.ms$hhsize<6,"<6",if_else(phirst.
 
 #number of hiv+ adults in the household
 phirst.hi <- subset(subset(subset(phirst.ms,select=c(hh_id,agecat,hiv)),agecat =="Adult"),!is.na(hiv))
-phirst.hi$ahiv <- if_else(phirst.hi$age=="Adult" & phirst.hi$hiv=="Pos",1L,if_else(phirst.hi$age=="Adult" & phirst.hi$hiv=="Neg",0L,NULL))
+phirst.hi$ahiv <- if_else(phirst.hi$agecat=="Adult" & phirst.hi$hiv=="Pos",1L,if_else(phirst.hi$agecat=="Adult" & phirst.hi$hiv=="Neg",0L,NULL))
 phirst.hi <- setDT(phirst.hi)[,list(ahiv=sum(ahiv)),by=.(hh_id)]
 phirst.hi$ahivcat <- as.factor(if_else(phirst.hi$ahiv==0,"No","Yes"))
 
+#households with HIV+ (yes) and HIV- (no) female adults
+phirst.sxf <- subset(subset(subset(phirst.ms,select=c(hh_id,sex,agecat,hiv)), sex=="Female" & agecat=="Adult"),!is.na(hiv))
+phirst.sxf$sx <- if_else(phirst.sxf$hiv=="Neg",0L,1L)
+phirst.sxf <- setDT(phirst.sxf)[,list(sxf=sum(sx)),by=.(hh_id)]
+phirst.sxf$sxf <- as.factor(if_else(phirst.sxf$sxf==0,"No","Yes"))
+
+#households with HIV+ (yes) and HIV- (no) male adults
+phirst.sxm <- subset(subset(subset(phirst.ms,select=c(hh_id,sex,agecat,hiv)), sex=="Male" & agecat=="Adult"),!is.na(hiv))
+phirst.sxm$sx <- if_else(phirst.sxm$hiv=="Neg",0L,1L)
+phirst.sxm <- setDT(phirst.sxm)[,list(sxm=sum(sx)),by=.(hh_id)]
+phirst.sxm$sxm <- as.factor(if_else(phirst.sxm$sxm==0,"No","Yes"))
+
 #final individual-level dataset
 phirst.ms <- merge(x=phirst.ms,y=phirst.hi,by="hh_id",all.x=TRUE)
-phirst.ms <- subset(phirst.ms,select=c(hh_id,ind_id,hhsize,hhsizecat,age,agecat,site,sex,hiv,artv,artr,cd4,cd4cat,pcv6wks,pcv14wks,pcv9mth,alcohol,smoke,ahiv,ahivcat))
+phirst.ms <- merge(x=phirst.ms,y=phirst.sxf,by="hh_id",all.x=TRUE)
+phirst.ms <- merge(x=phirst.ms,y=phirst.sxm,by="hh_id",all.x=TRUE)
+phirst.ms <- subset(phirst.ms,select=c(hh_id,ind_id,hhsize,hhsizecat,age,agecat,site,sex,hiv,artv,artr,cd4,cd4cat,pcv6wks,pcv14wks,pcv9mth,alcohol,smoke,ahiv,ahivcat,sxf,sxm))
 
 #baseline demographic characteristics (Table 1)
 table1(~age+cd4|agecat,data=phirst.ms,topclass="Rtable1-grid Rtable1-shade Rtable1-times")
@@ -93,7 +107,7 @@ table1(~site+sex+hiv+artv+artr+cd4cat+ahivcat+pcv6wks+pcv14wks+pcv9mth+smoke+alc
 #===============FOLLOW-UP DATASET DESCRIPTION
 
 #subset individual-level dataset that will merge follow-up dataset
-phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,hhsizecat,age,agecat,hiv,artv,artr,ahiv,ahivcat)),!is.na(hiv)),ind_id)
+phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm)),!is.na(hiv)),ind_id)
 
 #subset antibiotic dataset that will merge follow-up dataset
 phirst.ax <- arrange(rename(subset(phirst.ax,select=c(finalid,antibiotic)),c("finalid"="visit_id","antibiotic"="abx")),visit_id)
@@ -111,16 +125,16 @@ phirst.fu <- arrange(merge(x=phirst.fu,y=phirst.ms,by="ind_id",all.y=TRUE),visit
 #tidying the follow-up dataset
 phirst.fu$state <- if_else(phirst.fu$state==1,2L,if_else(phirst.fu$state==0,1L,NULL));phirst.fu$state[is.na(phirst.fu$state)]<-9L
 phirst.fu <- mutate(phirst.fu,hh_id=substr(visit_id,1,4),visit_no=as.integer(substr(visit_id,10,12)))
-phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,agecat,hiv,artv,artr,ahiv,ahivcat)
+phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm)
 
 #define community or household acquisition source
 phirst.tx <- arrange(subset(subset(phirst.fu,select=c(hh_id,visit_no,state)),state !=9),visit_no)
 phirst.tx$state <- if_else(phirst.tx$state==1,0L,1L)
 phirst.tx <- setDT(phirst.tx)[,list(tx=sum(state)),by=.(hh_id,visit_no)]
 phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
-phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,agecat,hiv,artv,artr,ahiv,ahivcat,tx))
+phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,ind_id,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm,tx))
 
-#follow-up caarriage characteristics of participants (figure 2)
+#follow-up carriage characteristics of participants (figure 2)
 source('~/Rproject/Markov.Model/script/fig2_carriage_dynamics.R')
 
 
@@ -177,13 +191,16 @@ source('~/Rproject/Markov.Model/script/fig3_carriage_acquisition.R')
 source('~/Rproject/Markov.Model/script/fig4_carriaage_duration.R')
 
 #plot model parameter convergence, and observed and predictions (supplementary figure 1)
-source('~/Rproject/Markov.Model/script/sfig1_convergence.R')
+source('~/Rproject/Markov.Model/script/figs1_convergence.R')
 
 #plot results from Viterbi algorithm (supplementary figure 2)
-source('~/Rproject/Markov.Model/script/sfig2_viterbi.R')
+source('~/Rproject/Markov.Model/script/figs2_viterbi.R')
 
 ##plot sensitivity analysis of # of HIV+ adults in a household & sampling times (supplementary figure 3)
-source('~/Rproject/Markov.Model/script/sfig3_sensitivity.R')
+source('~/Rproject/Markov.Model/script/figs3_sensitivity.R')
 
-#plotacquistion probabilities by household size (supplementary figure 4)
-source('~/Rproject/Markov.Model/script/sfig4_householdsize.R')
+#plot acquistion probabilities by household size (supplementary figure 4)
+source('~/Rproject/Markov.Model/script/figs4_householdsize.R')
+
+#plot acquistion probabilities by sex (supplementary figure 5)
+source('~/Rproject/Markov.Model/script/figs5_carriage_acquisition_sex.R')

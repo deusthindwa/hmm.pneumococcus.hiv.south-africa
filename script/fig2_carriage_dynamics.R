@@ -89,6 +89,47 @@ E<-ggplot(subset(phirst.d5, npdensity !=0),aes(d5group,npdensity,group=d5group))
   theme(axis.text.x=element_text(face="bold",size=10), axis.text.y=element_text(face="bold",size=10)) +
   theme(legend.position="right",legend.title=element_blank())
 
-
 (A + B) / (C + D) /E
 remove(A,B,C,D,E,phirst.d1,phirst.d2,phirst.d3,phirst.d4,phirst.d5)
+
+
+#median carriage density straatified by HIV-age
+ychildhiv = boot(subset(phirst.d4,agecat=="Younger child")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ychildhiv,conf = 0.95,type = c("basic"))
+
+ochildhiv = boot(subset(phirst.d4,agecat=="Older child")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ochildhiv,conf = 0.95,type = c("basic"))
+
+adulthiv = boot(subset(phirst.d4,agecat=="Adult")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(adulthiv,conf = 0.95,type = c("basic"))
+
+ychildhivpos = boot(subset(phirst.d4,d4group=="Younger child HIV+")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ychildhivpos,conf = 0.95,type = c("basic"))
+ychildhivneg = boot(subset(phirst.d4,d4group=="Younger child HIV-")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ychildhivneg,conf = 0.95,type = c("basic"))
+
+ochildhivpos = boot(subset(phirst.d4,d4group=="Older child HIV+")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ochildhivpos,conf = 0.95,type = c("basic"))
+ochildhivneg = boot(subset(phirst.d4,d4group=="Older child HIV-")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ochildhivneg,conf = 0.95,type = c("basic"))
+
+adulthivpos = boot(subset(phirst.d4,d4group=="Adult HIV+")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(adulthivpos,conf = 0.95,type = c("basic"))
+adulthivneg = boot(subset(phirst.d4,d4group=="Adult HIV-")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(adulthivneg,conf = 0.95,type = c("basic"))
+
+#median carriage density stratified by HIV-age-ART
+ychildnoart = boot(subset(phirst.d5,d5group=="Younger child HIV+\nno ART")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ychildnoart,conf = 0.95,type = c("bca"))
+ychildart = boot(subset(phirst.d5,d5group=="Younger child HIV+\nART")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ychildart,conf = 0.95,type = c("bca"))
+
+ochildnoart = boot(subset(phirst.d5,d5group=="Older child HIV+\nno ART")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ochildnoart,conf = 0.95,type = c("basic"))
+ochildart = boot(subset(phirst.d5,d5group=="Older child HIV+\nART")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(ochildart,conf = 0.95,type = c("basic"))
+
+adultnoart = boot(subset(phirst.d5,d5group=="Adult HIV+\nno ART")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(adultnoart,conf = 0.95,type = c("basic"))
+adultart = boot(subset(phirst.d5,d5group=="Adult HIV+\nART")$npdensity,function(x,i) median(x[i]),R=1000)
+boot.ci(adultart,conf = 0.95,type = c("basic"))

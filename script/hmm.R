@@ -1,3 +1,4 @@
+
 #Written by Deus Thindwa
 #Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018.
 #Continuous-time time-homogeneous hidden Markov modelling study, PhD chapter 1.
@@ -6,9 +7,9 @@
 
 #===============LOAD PACKAGES AND DATASETS IN MEMORY
 
-phirst.packages <- c("tidyverse","plyr","dplyr","msm","timetk","gridExtra","curl","minqa","table1",
+phirst.packages <- c("tidyverse","plyr","msm","timetk","gridExtra","curl","minqa","table1",
                     "lubridate","magrittr","data.table","parallel","foreign","readstata13","ggpubr",
-                    "wakefield","zoo","janitor","rethinking","scales","msmtools","FSA","nlme","patchwork")
+                    "wakefield","zoo","janitor","scales","msmtools","FSA","nlme","patchwork","boot")
 lapply(phirst.packages, library, character.only=TRUE)
 
 #load all phirst datasets (household-level, individual-level, follow-up & antibiotic use)
@@ -95,7 +96,7 @@ phirst.sxm$sxm <- as.factor(if_else(phirst.sxm$sxm==0,"No","Yes"))
 phirst.ms <- merge(x=phirst.ms,y=phirst.hi,by="hh_id",all.x=TRUE)
 phirst.ms <- merge(x=phirst.ms,y=phirst.sxf,by="hh_id",all.x=TRUE)
 phirst.ms <- merge(x=phirst.ms,y=phirst.sxm,by="hh_id",all.x=TRUE)
-phirst.ms <- subset(phirst.ms,select=c(hh_id,ind_id,hhsize,hhsizecat,age,agecat,site,sex,hiv,artv,artr,cd4,cd4cat,pcv6wks,pcv14wks,pcv9mth,alcohol,smoke,ahiv,ahivcat,sxf,sxm))
+phirst.ms <- subset(phirst.ms,select=c(hh_id,ind_id,year,hhsize,hhsizecat,age,agecat,site,sex,hiv,artv,artr,cd4,cd4cat,pcv6wks,pcv14wks,pcv9mth,alcohol,smoke,ahiv,ahivcat,sxf,sxm))
 
 #baseline demographic characteristics (Table 1)
 table1(~age+cd4|agecat,data=phirst.ms,topclass="Rtable1-grid Rtable1-shade Rtable1-times")
@@ -107,7 +108,7 @@ table1(~site+sex+hiv+artv+artr+cd4cat+ahivcat+pcv6wks+pcv14wks+pcv9mth+smoke+alc
 #===============FOLLOW-UP DATASET DESCRIPTION
 
 #subset individual-level dataset that will merge follow-up dataset
-phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm)),!is.na(hiv)),ind_id)
+phirst.ms <- arrange(subset(subset(phirst.ms,select=c(ind_id,year,site,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm)),!is.na(hiv)),ind_id)
 
 #subset antibiotic dataset that will merge follow-up dataset
 phirst.ax <- arrange(rename(subset(phirst.ax,select=c(finalid,antibiotic)),c("finalid"="visit_id","antibiotic"="abx")),visit_id)
@@ -125,17 +126,14 @@ phirst.fu <- arrange(merge(x=phirst.fu,y=phirst.ms,by="ind_id",all.y=TRUE),visit
 #tidying the follow-up dataset
 phirst.fu$state <- if_else(phirst.fu$state==1,2L,if_else(phirst.fu$state==0,1L,NULL));phirst.fu$state[is.na(phirst.fu$state)]<-9L
 phirst.fu <- mutate(phirst.fu,hh_id=substr(visit_id,1,4),visit_no=as.integer(substr(visit_id,10,12)))
-phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm)
+phirst.fu <- phirst.fu %>% mutate(obst=if_else(phirst.fu$state==9L,1L,0L)) %>% select(visit_id,ind_id,hh_id,visit_no,year,site,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm)
 
 #define community or household acquisition source
 phirst.tx <- arrange(subset(subset(phirst.fu,select=c(hh_id,visit_no,state)),state !=9),visit_no)
 phirst.tx$state <- if_else(phirst.tx$state==1,0L,1L)
 phirst.tx <- setDT(phirst.tx)[,list(tx=sum(state)),by=.(hh_id,visit_no)]
 phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
-phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,ind_id,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm,tx))
-
-#follow-up carriage characteristics of participants (figure 2)
-source('~/Rproject/Markov.Model/script/fig2_carriage_dynamics.R')
+phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,ind_id,year,site,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm,tx))
 
 
 #===============HIDDEN MARKOV MODEL WITH MISCLASSIFICATIONS
@@ -183,6 +181,9 @@ p.model4 <- msm(state~dys,subject=ind_id,data=phirst.fu,
 
 #comparing the AIC scores of the fitted models 
 AIC(p.model1,p.model2,p.model3,p.model4)
+
+#follow-up carriage characteristics of participants (figure 2)
+source('~/Rproject/Markov.Model/script/fig2_carriage_dynamics.R')
 
 #plot within household and community acquisition probabilities (figure 3)
 source('~/Rproject/Markov.Model/script/fig3_carriage_acquisition.R')

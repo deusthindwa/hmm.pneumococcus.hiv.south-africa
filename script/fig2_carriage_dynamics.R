@@ -93,7 +93,7 @@ E<-ggplot(subset(phirst.d5, npdensity !=0),aes(d5group,npdensity,group=d5group))
 remove(A,B,C,D,E,phirst.d1,phirst.d2,phirst.d3,phirst.d4,phirst.d5)
 
 
-#median carriage density straatified by HIV-age
+#median carriage density stratified by HIV-age
 ychildhiv = boot(subset(phirst.d4,agecat=="Younger child")$npdensity,function(x,i) median(x[i]),R=1000)
 boot.ci(ychildhiv,conf = 0.95,type = c("basic"))
 

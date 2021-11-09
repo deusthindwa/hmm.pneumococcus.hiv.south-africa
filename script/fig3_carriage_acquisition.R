@@ -84,3 +84,19 @@ B<-ggplot(phirst.es) +
 phirst.es <- rename(phirst.es, c("iid"="Table.1A","age"="Age","hiv"="HIV","hh_hiv"="Household.adult.HIV","carry.est"="Estimate","Lcarry.est"="Lower.bound","Ucarry.est"="Upper.bound"))
 
 A + B
+
+
+#estimate the number of episodes
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Pos",agecat="Younger child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Neg",agecat="Younger child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Pos",agecat="Older child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Neg",agecat="Older child",tx="hhtx",ahivcat="No"),ci="normal",cl=0.95)
+
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Pos",agecat="Younger child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Neg",agecat="Younger child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Pos",agecat="Older child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+envisits.msm(p.model4,fromt=0,tot=365.25,covariates=list(hiv="Neg",agecat="Older child",tx="hhtx",ahivcat="Yes"),ci="normal",cl=0.95)
+
+
+
+

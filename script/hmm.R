@@ -133,7 +133,13 @@ phirst.tx <- arrange(subset(subset(phirst.fu,select=c(hh_id,visit_no,state)),sta
 phirst.tx$state <- if_else(phirst.tx$state==1,0L,1L)
 phirst.tx <- setDT(phirst.tx)[,list(tx=sum(state)),by=.(hh_id,visit_no)]
 phirst.tx$tx <- as.factor(if_else(phirst.tx$tx>=1,"hhtx","cmtx"))
-phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,ind_id,year,site,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm,tx))
+phirst.fu <- subset(merge(x=phirst.fu, y=phirst.tx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,visit_no, hh_id,ind_id,year,site,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm,tx))
+
+#define infection contribution from other house members
+phirst.fx <- arrange(subset(subset(phirst.fu,select=c(hh_id,visit_no,state)),state !=9),visit_no)
+phirst.fx$state <- if_else(phirst.fx$state==1,0L,1L)
+phirst.fx <- setDT(phirst.fx)[,list(fx=sum(state)),by=.(hh_id,visit_no)]
+phirst.fu <- subset(merge(x=phirst.fu, y=phirst.fx, by=c("hh_id","visit_no"),all.y=TRUE),select=c(visit_id,ind_id,year,site,dys,state,obst,npdensity,abx,hhsize,hhsizecat,age,sex,agecat,hiv,artv,artr,ahiv,ahivcat,sxf,sxm,tx, fx))
 
 
 #===============HIDDEN MARKOV MODEL WITH MISCLASSIFICATIONS
@@ -176,6 +182,13 @@ p.model3 <- msm(state~dys,subject=ind_id,data=phirst.fu,
 p.model4 <- msm(state~dys,subject=ind_id,data=phirst.fu,
                 qmatrix=matrix.Q, ematrix=matrix.E,
                 covariates=list("1-2"=~agecat+hiv+ahivcat+tx+hhsizecat,"2-1"=~agecat+hiv+abx+artv),
+                censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
+                opt.method="bobyqa", control=list(maxfun=100000))
+
+#accounting for infection probability from other household members 
+p.modelfx <- msm(state~dys,subject=ind_id,data=phirst.fu,
+                qmatrix=matrix.Q, ematrix=matrix.E,
+                covariates=list("1-2"=~agecat+hiv+ahivcat+tx+fx,"2-1"=~agecat+hiv+abx+artv),
                 censor=9, censor.states=c(1,2), obstrue=obst, est.initprobs=T,
                 opt.method="bobyqa", control=list(maxfun=100000))
 

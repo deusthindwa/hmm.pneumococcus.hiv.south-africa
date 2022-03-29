@@ -7,10 +7,13 @@
 
 #===============LOAD PACKAGES AND DATASETS IN MEMORY
 
-phirst.packages <- c("tidyverse","plyr","msm","timetk","gridExtra","curl","minqa","table1",
-                    "lubridate","magrittr","data.table","parallel","foreign","readstata13","ggpubr",
-                    "wakefield","zoo","janitor","scales","msmtools","FSA","nlme","patchwork","boot")
-lapply(phirst.packages, library, character.only=TRUE)
+#load the require packages
+if (!require(pacman)){
+  install.packages("pacman")
+}
+pacman::p_load(char = c("tidyverse","plyr","msm","timetk","gridExtra","curl","minqa","table1",
+                        "lubridate","magrittr","data.table","parallel","foreign","readstata13","ggpubr",
+                        "wakefield","zoo","janitor","scales","msmtools","FSA","nlme","patchwork","boot"))
 
 #load all phirst datasets (household-level, individual-level, follow-up & antibiotic use)
 phirst.hh <- read.dta13("~/Rproject/Markov.Model/data/phirst_household.dta",generate.factors=T)

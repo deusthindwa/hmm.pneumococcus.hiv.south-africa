@@ -1,4 +1,4 @@
-https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009680
+https://doi.org/10.1371/journal.pcbi.1009680
 
 # Estimating the contribution of HIV-infected adults to household pneumococcal transmission in South Africa, 2016-2018: A hidden Markov modelling study.
 
